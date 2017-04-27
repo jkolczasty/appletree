@@ -124,7 +124,6 @@ class AppleTreeMainWindow(QtGui.QMainWindow):
         self.plugins.initialize()
         self.ready = True
         self.treeready = False
-        self.open("local", "test", "test document")
 
     def _processDocumentsTree(self, docbackend, docid, docname, items, parent):
         self.addDocumentTree(docbackend, docid, docname, parent)
