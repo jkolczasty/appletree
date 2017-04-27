@@ -233,6 +233,9 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
     def on_tab_current_changed(self, index):
         widget = self.tabs.widget(index)
+        if not widget:
+            return
+        
         docid = widget.accessibleName()
         treeitem = self._treeFindDocument(docid)
         if treeitem:
