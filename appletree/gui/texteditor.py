@@ -29,17 +29,16 @@ from weakref import ref
 
 class QATTextDocument(Qt.QTextDocument):
     def __init__(self, docbackend, docid, *args):
+        super(QATTextDocument, self).__init__(*args)
         self.docbackend = docbackend
         self.docid = docid
-        Qt.QTextDocument.__init__(self, *args)
 
     def loadResource(self, p_int, _qurl):
         url = _qurl.toString()
 
         backend = getBackend(self.docbackend)
-        schema, name = url.split("://")
-
-        return backend.getImage(name)
+        # print("loadResource():", self.docid, url)
+        return backend.getImage(self.docid, url)
 
 
 class TabEditorText(Qt.QWidget):
@@ -185,11 +184,14 @@ class TabEditorText(Qt.QWidget):
         pass
 
     def addImage(self, name, image=None, path=None):
-        url = self.docid + "://" + name
-        qurl = Qt.QUrl(url)
+        url = name
+        qurl = Qt.QUrl()
+        qurl.setUrl(url)
+
         if not image:
             image = Qt.QImage(path)
 
+        self.log.info("addImage(): %s: %s", name, url)
         imagef = Qt.QTextImageFormat()
         imagef.setName(url)
 
@@ -200,14 +202,15 @@ class TabEditorText(Qt.QWidget):
         if name is None:
             name = genuid()
 
+        self.log.info("insertImage(): %s: %s", name, path)
         qurl = self.addImage(name, path=path)
         url = qurl.toString()
 
         image = Qt.QTextImageFormat()
         image.setName(url)
+        # image.setName()
 
         cursor = self.editor.textCursor()
-
         cursor.insertImage(image)
 
     def on_text_changed(self, *args):

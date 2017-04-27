@@ -138,6 +138,7 @@ class AppleTreeMainWindow(QtGui.QMainWindow):
             backend = getBackend(docbackend)
             doctree = backend.getDocumentsTree()
             if not doctree:
+                self.treeready = True
                 return
             for docid, docname, items in doctree:
                 self._processDocumentsTree(docbackend, docid, docname, items, docbackend)
@@ -163,8 +164,6 @@ class AppleTreeMainWindow(QtGui.QMainWindow):
             backend = getBackend(docbackend)
             if not backend:
                 continue
-
-            print("BACKEND:", docbackend)
 
             root = self._treeFindDocument("at:backend:" + docbackend)
             tree = self._getDocumentTree(root)
@@ -322,34 +321,28 @@ class AppleTreeMainWindow(QtGui.QMainWindow):
 
     def save(self, *args):
         docid, editor = self.getCurrentEditor()
-
-        print("SAVE:", docid)
+        self.log.info("save(): %s", docid)
 
         if not editor:
             # TODO: notify about desync/fail?
             return None
 
-        print("=" * 100)
         body = editor.getBody()
-        print(body)
-        print("=" * 100)
 
         images = editor.getImages()
-
         backend = getBackend(editor.docbackend)
         # save images
         imagesnames = []
         for res in images:
-            name = res.split("://", 1)[-1]
-            imagesnames.append(name)
-            url = Qt.QUrl(res)
+            imagesnames.append(res)
+            url = Qt.QUrl()
+            url.setUrl(res)
             resobj = editor.doc.resource(Qt.QTextDocument.ImageResource, url)
-            backend.putImage(docid, name, resobj)
+            backend.putImage(docid, res, resobj)
 
         backend.putDocumentBody(docid, body)
         backend.clearImagesOld(docid, imagesnames)
         editor.setModified(False)
-        # TODO: clear flag modified in editor
 
     def on_toolbar_insert_image(self, *args):
         docid, editor = self.getCurrentEditor()
@@ -380,11 +373,9 @@ class AppleTreeMainWindow(QtGui.QMainWindow):
         if not ok:
             return
         backend = getBackend(docbackend)
-        # parent = self._treeFindDocument(parent)
         docid = genuid()
         if not backend.putDocumentBody(docid, ""):
-            # TODO: show error dialog
+            self.log.error("Failed to push document to backend")
             return
         self.addDocumentTree(docbackend, docid, name, parent)
-
         self.saveDocumentsTree()

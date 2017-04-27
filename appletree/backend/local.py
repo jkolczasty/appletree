@@ -60,7 +60,7 @@ class BackendDocumentsLocal(BackendDocuments):
         path = os.path.join(self.docdir, docid)
 
         fn = os.path.join(path, "document.atdoc")
-        print("getDocumentBody():", docid, fn)
+        self.log.info("getDocumentBody(): %s: %s", docid, fn)
         try:
             with open(fn, 'rb') as f:
                 content = f.read()
@@ -96,19 +96,19 @@ class BackendDocumentsLocal(BackendDocuments):
             return
 
         fn = os.path.join(path, "document.atdoc")
-        print("backend:putDocumentBody():", docid, fn)
+        self.log.info("backend:putDocumentBody(): %s: %s", docid, fn)
         try:
             with open(fn, 'wb') as f:
                 f.write(encode(body, "utf-8"))
             return True
         except Exception as e:
-            self.log.error("getDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+            self.log.error("putDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
 
     def getImage(self, docid, name):
         path = os.path.join(self.docdir, docid)
 
         fn = os.path.join(path, "resources", "images", name)
-        print("backend:getImage():", docid, name, fn)
+        self.log.info("backend:getImage(): %s: %s: %s", docid, name, fn)
         try:
             with open(fn, 'rb') as f:
                 content = f.read()
@@ -124,7 +124,7 @@ class BackendDocumentsLocal(BackendDocuments):
     def putImage(self, docid, name, image):
         fn = os.path.join(self.docdir, docid, "resources", "images", name)
 
-        print("backend:putImage():", docid, name, fn)
+        self.log.info("backend:putImage(): %s: %s: %s", docid, name, fn)
         try:
             # TODO: support indexed colors formats like GIF?
             image.save(fn, "PNG")
