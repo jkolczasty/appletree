@@ -264,7 +264,7 @@ class AppleTreeMainWindow(QtGui.QMainWindow):
         item = self._treeFindDocument(uid)
         if not item:
             item = Qt.QTreeWidgetItem(self.root, [docbackend, docbackend, uid, "B"])
-            item.setIcon(0, getIcon("doc"))
+            item.setIcon(0, getIcon("backend"))
             item.setExpanded(True)
         return item
 
