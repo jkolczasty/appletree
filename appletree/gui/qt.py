@@ -20,4 +20,14 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from PyQt4 import Qt, QtGui, QtCore
+# noinspection PyBroadException
+
+__QT = 5
+if __QT == 5:
+    try:
+        from PyQt5 import Qt, QtGui, QtCore
+    except:
+        __QT == 4
+
+if __QT == 4:
+    from PyQt4 import Qt, QtGui, QtCore

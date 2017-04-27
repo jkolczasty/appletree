@@ -29,3 +29,4 @@ config.base_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 config.data_dir = "data"
 config.config_dir = os.path.join(config.data_dir, "config")
 
+config.qt = 5

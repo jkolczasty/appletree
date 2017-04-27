@@ -23,9 +23,9 @@
 from .base import BackendDocuments
 import os.path
 from codecs import encode, decode
-from appletree.config import config
-from PyQt4 import Qt
 import json
+from appletree.config import config
+from appletree.gui.qt import Qt
 
 
 class BackendDocumentsLocal(BackendDocuments):

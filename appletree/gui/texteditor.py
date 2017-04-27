@@ -123,7 +123,8 @@ class TabEditorText(Qt.QWidget):
 
         self.doc.setModified(False)
 
-        self.connect(self.editor, Qt.SIGNAL("textChanged()"), self.on_text_changed)
+        #self.connect(self.editor, Qt.SIGNAL("textChanged()"), self.on_text_changed)
+        self.editor.textChanged.connect(self.on_text_changed)
 
     def setModified(self, modified):
         self.doc.setModified(modified)

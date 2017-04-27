@@ -21,7 +21,7 @@
 #
 
 
-from PyQt4 import Qt
+from appletree.gui.qt import Qt
 import logging
 from appletree.application import App
 import signal

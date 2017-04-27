@@ -35,17 +35,18 @@ from appletree.plugins.base import ATPlugins
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 
 
-class AppleTreeMainWindow(QtGui.QMainWindow):
+class AppleTreeMainWindow(Qt.QMainWindow):
     editors = None
     ready = False
     treeready = False
     plugins = None
 
     def __init__(self):
-        QtGui.QMainWindow.__init__(self, None)
+        super(AppleTreeMainWindow, self).__init__()
+
         self.log = logging.getLogger("at")
 
-        self.setWindowTitle("AppleTree")
+        self.setWindowTitle("AppleTree (Qt " + Qt.QT_VERSION_STR + ")")
         self.editors = dict()
 
         self.menubar = Qt.QMenuBar()

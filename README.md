@@ -10,7 +10,7 @@ Many thanks to contributors (testers and feature requests authors ;-) ):
 
 Requirements:
 - Python 3
-- PyQt4
+- PyQt5 or PyQt4 (automatic fallback from 5 to 4, not fully tested with 5)
 
 Features (to be implemented before first offcial stable realase):
 - (+) Multiple backends support
