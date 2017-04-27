@@ -137,7 +137,8 @@ class AppleTreeMainWindow(QtGui.QMainWindow):
             self.addDocumentBackend(docbackend)
             backend = getBackend(docbackend)
             doctree = backend.getDocumentsTree()
-
+            if not doctree:
+                return
             for docid, docname, items in doctree:
                 self._processDocumentsTree(docbackend, docid, docname, items, docbackend)
 
