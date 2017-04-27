@@ -235,7 +235,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         widget = self.tabs.widget(index)
         if not widget:
             return
-        
+
         docid = widget.accessibleName()
         treeitem = self._treeFindDocument(docid)
         if treeitem:
@@ -353,7 +353,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
         dialog = Qt.QFileDialog()
         dialog.setFileMode(Qt.QFileDialog.AnyFile)
-        dialog.setFilter("Images JPEG/PNG/TIFF (*.png *.jpg *.jpeg *.tiff)")
+        dialog.setNameFilters(["Images JPEG/PNG/TIFF (*.png *.jpg *.jpeg *.tiff)", ])
 
         if not dialog.exec_():
             return

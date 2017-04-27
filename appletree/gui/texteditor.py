@@ -154,7 +154,7 @@ class TabEditorText(Qt.QWidget):
         item.setIcon(0, getIcon("attachment"))
 
     def getBody(self):
-        return self.doc.toHtml(encoding='UTF-8')
+        return self.doc.toHtml()
 
     def getImages(self):
         images = []
