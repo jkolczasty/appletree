@@ -26,6 +26,7 @@ from appletree.backend import loadBackend, getBackend, listBackends
 
 class App(object):
     def __init__(self):
+
         loadBackend("local")
 
         self.win = AppleTreeMainWindow()

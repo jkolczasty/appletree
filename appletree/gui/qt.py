@@ -22,7 +22,12 @@
 
 # noinspection PyBroadException
 
-__QT = 5
+import ctypes
+import os
+import traceback
+
+__QT = 4 if os.environ.get('USE_QT4') == '1' else 5
+
 if __QT == 5:
     try:
         from PyQt5 import Qt, QtGui, QtCore
@@ -31,3 +36,28 @@ if __QT == 5:
 
 if __QT == 4:
     from PyQt4 import Qt, QtGui, QtCore
+
+FontDB = None
+
+
+def initFonts():
+    global FontDB
+    FontDB = Qt.QFontDatabase()
+    FontDB.addApplicationFont("fonts/fontawesome-webfont.ttf")
+
+
+def loadQImageFix(path):
+    try:
+        with open(path, 'rb') as f:
+            data = Qt.QByteArray(f.read())
+
+        image = Qt.QPixmap()
+        image.loadFromData(data)
+        data.clear()
+        del data
+        return image
+        # return None
+    except Exception as e:
+        print("Exception:", e.__class__.__name__, e)
+        traceback.print_exc()
+        return None

@@ -225,8 +225,9 @@ class AppleTreeMainWindow(Qt.QMainWindow):
             del self.editors[docid]
         except:
             pass
-        widget.destroy()
+
         self.tabs.removeTab(index)
+        widget.destroy()
 
         if self.tabs.count() == 0:
             self.tabs.hide()

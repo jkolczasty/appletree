@@ -21,7 +21,7 @@
 #
 
 
-from appletree.gui.qt import Qt
+from appletree.gui.qt import Qt, initFonts
 import logging
 from appletree.application import App
 import signal
@@ -31,6 +31,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     qtapp = Qt.QApplication(sys.argv)
     qtapp.setApplicationName("AppleTree")
+    initFonts()
     app = App()
     app.show()
     signal.signal(signal.SIGINT, signal.SIG_DFL)

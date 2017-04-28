@@ -25,7 +25,7 @@ import os.path
 from codecs import encode, decode
 import json
 from appletree.config import config
-from appletree.gui.qt import Qt
+from appletree.gui.qt import Qt, loadQImageFix
 
 
 class BackendDocumentsLocal(BackendDocuments):
@@ -109,15 +109,18 @@ class BackendDocumentsLocal(BackendDocuments):
 
         fn = os.path.join(path, "resources", "images", name)
         self.log.info("backend:getImage(): %s: %s: %s", docid, name, fn)
+
         try:
             with open(fn, 'rb') as f:
-                content = f.read()
+                data = Qt.QByteArray(f.read())
 
             image = Qt.QPixmap()
-            image.loadFromData(content)
+            image.loadFromData(data)
+            data.clear()
+            # del data
             return image
         except Exception as e:
-            self.log.error("gutImage(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+            self.log.error("getImage(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
 
         return None
 

@@ -20,7 +20,8 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt
+import gc
+from appletree.gui.qt import Qt, FontDB, loadQImageFix
 from appletree.backend import getBackend
 from appletree.helpers import getIcon, T, genuid
 import logging
@@ -28,8 +29,8 @@ from weakref import ref
 
 
 class QATTextDocument(Qt.QTextDocument):
-    def __init__(self, docbackend, docid, *args):
-        super(QATTextDocument, self).__init__(*args)
+    def __init__(self, docbackend, docid, *args, **kwargs):
+        super(QATTextDocument, self).__init__(*args, **kwargs)
         self.docbackend = docbackend
         self.docid = docid
 
@@ -38,7 +39,8 @@ class QATTextDocument(Qt.QTextDocument):
 
         backend = getBackend(self.docbackend)
         # print("loadResource():", self.docid, url)
-        return backend.getImage(self.docid, url)
+        image = backend.getImage(self.docid, url)
+        return image
 
 
 class TabEditorText(Qt.QWidget):
@@ -62,10 +64,10 @@ class TabEditorText(Qt.QWidget):
         self.setLayout(h1)
         h1.addWidget(splitter)
 
-        self.editor = Qt.QTextEdit()
+        self.editor = Qt.QTextEdit(parent=self)
         self.editor.setAcceptRichText(1)
         # self.editor = Qt.QTextDocument()
-        self.doc = QATTextDocument(docbackend, docid)
+        self.doc = QATTextDocument(docbackend, docid, parent=self.editor)
 
         docbody = backend.getDocumentBody(docid)
         images = backend.getImages(docid)
@@ -79,14 +81,11 @@ class TabEditorText(Qt.QWidget):
         self.doc.setHtml(docbody)
         self.editor.setDocument(self.doc)
 
-        fontdb = Qt.QFontDatabase()
-        fontdb.addApplicationFont("fonts/fontawesome-webfont.ttf")
-
         font = Qt.QFont("Courier")
-        font.setPointSize(24)
+        font.setPointSize(16)
         self.editor.setFont(font)
 
-        elements = Qt.QTreeWidget()
+        elements = Qt.QTreeWidget(self)
         # elements.setMaximumWidth(200)
         # elements.setFixedWidth(200)
         # elements.setMinimumWidth(100)
@@ -97,8 +96,6 @@ class TabEditorText(Qt.QWidget):
         # elements.setFixedWidth(200)
         elements.setHeaderHidden(True)
         elementsroot = elements.invisibleRootItem()
-        # self.connect(tree, Qt.SIGNAL("itemSelectionChanged(QTreeWidgetItem*, int)"), self.on_tree_clicked)
-        # elements.itemSelectionChanged.connect(self.on_tree_item_selection)
 
         elementstype = Qt.QTreeWidgetItem(elementsroot, [T("Attachements"), "attachements"])
         elementstype.setIcon(0, getIcon("attachments"))
@@ -123,8 +120,19 @@ class TabEditorText(Qt.QWidget):
 
         self.doc.setModified(False)
 
-        #self.connect(self.editor, Qt.SIGNAL("textChanged()"), self.on_text_changed)
+        # self.connect(self.editor, Qt.SIGNAL("textChanged()"), self.on_text_changed)
         self.editor.textChanged.connect(self.on_text_changed)
+
+    def destroy(self, *args):
+        self.log.info("Destroy")
+        self.doc.clear()
+        del self.doc
+        del self.elementsroot
+        self.elements.destroy()
+        self.editor.destroy()
+        del self.elements
+        del self.editor
+        gc.collect()
 
     def setModified(self, modified):
         self.doc.setModified(modified)
@@ -186,33 +194,35 @@ class TabEditorText(Qt.QWidget):
 
     def addImage(self, name, image=None, path=None):
         url = name
-        qurl = Qt.QUrl()
-        qurl.setUrl(url)
 
         if not image:
-            image = Qt.QImage(path)
+            image = loadQImageFix(path)
+            if not image:
+                print("??????? NO IMAGE????")
+                return
 
-        self.log.info("addImage(): %s: %s", name, url)
-        imagef = Qt.QTextImageFormat()
-        imagef.setName(url)
+        self.log.info("addImage(): %s: %s: %s", name, url, path)
 
+        qurl = Qt.QUrl()
+        qurl.setUrl(url)
         self.doc.addResource(Qt.QTextDocument.ImageResource, qurl, image)
-        return qurl
+        del qurl
+        del image
+        return url
 
     def insertImage(self, name, path):
         if name is None:
             name = genuid()
 
         self.log.info("insertImage(): %s: %s", name, path)
-        qurl = self.addImage(name, path=path)
-        url = qurl.toString()
+        url = self.addImage(name, path=path)
 
         image = Qt.QTextImageFormat()
         image.setName(url)
-        # image.setName()
 
         cursor = self.editor.textCursor()
         cursor.insertImage(image)
+        del image
 
     def on_text_changed(self, *args):
         modified = self.doc.isModified()
