@@ -111,13 +111,19 @@ class BackendDocumentsLocal(BackendDocuments):
         self.log.info("backend:getImage(): %s: %s: %s", docid, name, fn)
 
         try:
-            with open(fn, 'rb') as f:
-                data = Qt.QByteArray(f.read())
+            f = Qt.QFile(fn)
+            if not f.open(Qt.QFile.ReadOnly):
+                self.log.error("getImage(): could not open file: %s", fn)
+                return None
+
+            data = f.readAll()
+            f.close()
+            del f
 
             image = Qt.QPixmap()
             image.loadFromData(data)
             data.clear()
-            # del data
+            del data
             return image
         except Exception as e:
             self.log.error("getImage(): exception: %s: %s: %s", fn, e.__class__.__name__, e)

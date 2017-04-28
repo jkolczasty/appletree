@@ -48,15 +48,21 @@ def initFonts():
 
 def loadQImageFix(path):
     try:
-        with open(path, 'rb') as f:
-            data = Qt.QByteArray(f.read())
+        f = Qt.QFile(path)
+        if not f.open(Qt.QFile.ReadOnly):
+            print("loadQImageFix(): could not open file:", path)
+            return None
+
+        data = f.readAll()
+        f.close()
+        del f
 
         image = Qt.QPixmap()
         image.loadFromData(data)
         data.clear()
         del data
         return image
-        # return None
+
     except Exception as e:
         print("Exception:", e.__class__.__name__, e)
         traceback.print_exc()
