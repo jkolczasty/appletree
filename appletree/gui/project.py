@@ -24,14 +24,10 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import logging
-from appletree.backend import listBackends
 from appletree.gui.qt import Qt, QtGui, QtCore
-from appletree.helpers import genuid, getIcon
+from appletree.helpers import genuid, getIcon, T
 from appletree.gui.texteditor import TabEditorText
-from appletree.gui.mwtoolbar import MainWindowToolbar
 from appletree.gui.treeview import QATTreeWidget
-from appletree.project import Projects
-from appletree.plugins.base import ATPlugins
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 
@@ -349,6 +345,69 @@ class ProjectView(Qt.QWidget):
         self.addDocumentTree(docid, name, parent)
         self.saveDocumentsTree()
 
-
     def on_toolbar_save(self):
         self.save()
+
+
+class NewProjectDialog(Qt.QDialog):
+    fields = None
+
+    def __init__(self, win):
+        super(NewProjectDialog, self).__init__(win)
+
+        self.result = False
+        self.fields = dict()
+
+        self.setWindowTitle(T("New project"))
+        self.vbox = Qt.QVBoxLayout(self)
+
+        self.box = Qt.QGroupBox(self)
+        self.form = Qt.QFormLayout(self.box)
+
+        buttonbox = Qt.QDialogButtonBox()
+        buttonbox.setGeometry(Qt.QRect(150, 250, 341, 32))
+        buttonbox.setOrientation(QtCore.Qt.Horizontal)
+        buttonbox.setStandardButtons(Qt.QDialogButtonBox.Cancel | Qt.QDialogButtonBox.Ok)
+        # buttonbox.setWindowTitle(T("New project"))
+
+        self.vbox.addWidget(self.box)
+        self.vbox.addWidget(buttonbox)
+        self.vbox.setStretch(2, 0)
+
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        #self.setWindowModality(Qt.Q ApplicationModal)
+
+        buttonbox.accepted.connect(self.on_accept)
+        buttonbox.rejected.connect(self.on_reject)
+        # QtCore.QMetaObject.connectSlotsByName(Dialog)
+        self.adjustSize()
+        self.setMinimumWidth(600)
+        self.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.MinimumExpanding)
+
+        inputwidget = Qt.QLineEdit()
+        inputwidget.textChanged.connect(self.on_changed_name)
+        self.form.addRow(T("Project name"), inputwidget)
+
+        inputwidget.setFocus()
+        # inputwidget = Qt.QLineEdit()
+        # inputwidget.textChanged.connect(self.on_changed_name)
+        # self.form.addRow(T("Project name"), inputwidget)
+
+        self.adjustSize()
+
+    def exec_(self):
+
+        super(NewProjectDialog, self).exec_()
+        # del self.fields
+        return self.result
+
+    def on_accept(self):
+        self.result = True
+        self.close()
+
+    def on_reject(self):
+        self.result = False
+        self.close()
+
+    def on_changed_name(self, newtext):
+        self.fields['name'] = newtext

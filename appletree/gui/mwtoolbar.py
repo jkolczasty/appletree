@@ -38,7 +38,8 @@ class MainWindowToolbar(Qt.QToolBar):
 
         a = Qt.QAction(_icon, name, self.win())
         a.triggered.connect(callback)
-        a.setShortcut(shortcut)
+        if shortcut:
+            a.setShortcut(shortcut)
         self.addAction(a)
 
     def add(self, items):

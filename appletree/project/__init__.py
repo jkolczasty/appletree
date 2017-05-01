@@ -22,10 +22,11 @@ PROJECT_DIRS_MODE = 0o0700
 
 
 class Project(object):
-    def __init__(self, projectid, docbackend, syncbackend):
+    def __init__(self, projectid, name, docbackend, syncbackend):
+        self.name = name
+        self.projectid = projectid
         self.doc = docbackend
         self.sync = syncbackend
-        self.projectid = projectid
 
     def open(self):  # ???
         return True
@@ -48,6 +49,8 @@ class Projects(object):
         self.projects = dict()
 
     def meta(self, projectid):
+        if not projectid:
+            return None
         try:
             path = os.path.join(config.data_dir, "projects", projectid)
             if not os.path.isdir(path):
@@ -58,6 +61,10 @@ class Projects(object):
                 self.log.warn("meta(): no project.conf: %s", path)
                 return None
             meta = dict()
+            meta['name'] = 'Unknown'
+            meta['backend'] = 'local'
+            meta['sync'] = None
+
             for k, v in cfg.items('project'):
                 if k not in META_KEYS:
                     continue
@@ -81,10 +88,38 @@ class Projects(object):
         # syncbackend = getSyncBackend(meta.get('sync'))
         syncbackend = None
 
-        project = Project(projectid=projectid, docbackend=backend, syncbackend=syncbackend)
+        project = Project(projectid=projectid, name=meta['name'], docbackend=backend, syncbackend=syncbackend)
         self.projects[projectid] = project
 
         return project
+
+    def save(self):
+        path = os.path.join(config.config_dir, "projects.conf")
+        try:
+            cfg = ConfigParser()
+            section = 'projects'
+            cfg.add_section(section)
+            projects = self.list()
+            cfg.set(section, 'projects', ",".join(projects))
+            with open(path, 'w') as f:
+                cfg.write(f)
+        except Exception as e:
+            self.log.error("Failed to save: %s: %s", e.__class__.__name__, e)
+
+    def load(self):
+        cfg = ConfigParser()
+        path = os.path.join(config.config_dir, "projects.conf")
+        try:
+            if not cfg.read(path):
+                return False
+
+            projects = [s.strip() for s in cfg.get('projects', 'projects').split(",")]
+
+            for projectid in projects:
+                self.open(projectid)
+
+        except Exception as e:
+            self.log.error("Config read failed: %s: %s", e.__class__.__name__, e)
 
     def close(self, projectid):
         project = self.projects.get(projectid)
@@ -118,7 +153,7 @@ class Projects(object):
 
             with open(os.path.join(path, 'project.conf'), 'w') as f:
                 cfg.write(f)
-            return True
+            return projectid
         except Exception as e:
             self.log.error("Failed to create project meta: %s: %s: %s", projectid, e.__class__.__name__, e)
             traceback.print_exc()

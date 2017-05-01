@@ -28,7 +28,7 @@ from appletree.gui.qt import Qt, QtCore
 from appletree.gui.mwtoolbar import MainWindowToolbar
 from appletree.project import Projects
 from appletree.plugins.base import ATPlugins
-from appletree.gui.project import ProjectView
+from appletree.gui.project import ProjectView, NewProjectDialog
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 
@@ -53,14 +53,14 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.plugins = ATPlugins(self)
         self.plugins.discovery()
 
-        # simple test for one project for now
-
         self.projects = Projects()
+        self.projects.load()
         self.projectsViews = dict()
 
         # TODO: remove static code, move to dynamic build of toolbars and menus
         self.toolbar.add(
-            [dict(name='Save', icon='save', shortcut='CTRL+S', callback=self.on_toolbar_save),
+            [dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
+             dict(name='Save', icon='save', shortcut='CTRL+S', callback=self.on_toolbar_save),
              dict(name='Add document', icon='document-add', shortcut='CTRL+SHIFT++',
                   callback=self.on_toolbar_document_add),
              ])
@@ -90,20 +90,17 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
         self.setCentralWidget(centralwidget)
         self.setMenuBar(self.menubar)
-        # self.tree.setSortingEnabled(True)
-        # self.tree.sortByColumn(0, QtCore.Qt.Qt_)
-        # box = Qt.QVBoxLayout()
 
         self.plugins.initialize()
         self.ready = True
         self.treeready = False
-        if self.projectOpen('test'):
-            return
+        projectslist = self.projects.list()
 
-        self.projectCreate('test', 'local', None, projectid='test')
-        self.projectOpen('test')
+        for projectid in projectslist:
+            self.projectOpen(projectid)
 
     def projectOpen(self, projectid):
+        self.log.info("projectOpen(): %s", projectid)
         idx = self.tabFind(projectid)
         if idx is not None:
             self.tabs.setCurrentIndex(idx)
@@ -115,8 +112,9 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
         projectv = ProjectView(project, self)
         projectv.loadDocumentsTree()
-        self.tabs.addTab(projectv, projectid)
+        self.tabs.addTab(projectv, project.name)
         self.projectsViews[projectid] = projectv
+        self.projects.save()
         return True
 
     def projectCreate(self, name, docbackend, syncbackend, projectid=None):
@@ -152,21 +150,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
             if tab.accessibleName() == uid:
                 return i
 
-    def open(self, projectid):
-        idx = self.tabFind(projectid)
-        if idx is not None:
-            self.tabs.setCurrentIndex(idx)
-            return
-
-        # tabeditor = TabEditorText(self, docbackend, docid, name)
-        # self.editors[docid] = tabeditor
-        # self.tabs.addTab(tabeditor, name)
-        # c = self.tabs.count()
-        # if self.tabs.count() == 1:
-        #     self.tabs.show()
-        #
-        # self.tabs.setCurrentIndex(c - 1)
-
     def tabSetLabel(self, uid, label):
         idx = self.tabFind(uid)
         if idx is None:
@@ -187,6 +170,21 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
     def on_toolbar_test(self, *args):
         pass
+
+    def on_toolbar_project_add(self, *args):
+        dialog = NewProjectDialog(self)
+        if not dialog.exec_():
+            return
+
+        name = dialog.fields.get('name')
+        backend = 'local'
+        sync = None
+        if not name:
+            return
+
+        projectid = self.projectCreate(name, backend, sync)
+        if projectid:
+            self.projectOpen(projectid)
 
     def on_toolbar_document_add(self, *args):
         projectid, projectv = self.getCurrentProject()
