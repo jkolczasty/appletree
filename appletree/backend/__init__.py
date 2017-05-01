@@ -27,26 +27,36 @@ import logging
 _backends = {}
 
 
-def getBackend(name):
-    return _backends.get(name)
+def hasBackend(name):
+    return name in _backends
 
 
 def listBackends():
     return _backends.keys()
 
 
-def loadBackend(name):
+def registerBackend(name):
     global _backends
+    global _backends
+
     log = logging.getLogger("at.backend")
     modname = "appletree.backend." + name
     mod, err = moduleLoad(modname)
     if err:
-        log.error("Failed to load backend: %s: %s", name, err)
+        log.error("Failed to register backend: %s: %s", name, err)
         return None
 
+    _backends[name] = mod
+
+
+def loadBackend(name, projectid):
+    global _backends
+    log = logging.getLogger("at.backend")
     try:
-        _backend = mod.FACTORY()
-        _backends[name] = _backend
-        return _backend
+        backend = _backends.get(name)
+        if not backend:
+            return None
+        backend = backend.create(projectid)
+        return backend
     except Exception as e:
         log.error("Failed to init backend: %s: %s: %s", name, e.__class__.__name__, e)

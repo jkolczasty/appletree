@@ -25,16 +25,16 @@ import os.path
 from codecs import encode, decode
 import json
 from appletree.config import config
-from appletree.gui.qt import Qt, loadQImageFix
+from appletree.gui.qt import Qt
 
 
 class BackendDocumentsLocal(BackendDocuments):
     name = "local"
     docdir = None
 
-    def __init__(self):
-        super(BackendDocumentsLocal, self).__init__()
-        self.docdir = os.path.join(config.data_dir, "documents")
+    def __init__(self, projectid):
+        super(BackendDocumentsLocal, self).__init__(projectid)
+        self.docdir = os.path.join(config.data_dir, "projects", projectid, "documents")
 
     def getDocumentsTree(self):
         path = os.path.join(self.docdir, "applenote.doctree")
@@ -74,6 +74,7 @@ class BackendDocumentsLocal(BackendDocuments):
     def getImages(self, docid):
         path = os.path.join(self.docdir, docid, "resources", "images")
         ret = []
+        # TODO: try...catch
         for fn in os.listdir(path):
             ret.append(fn)
 
@@ -152,4 +153,4 @@ class BackendDocumentsLocal(BackendDocuments):
                 os.unlink(ffn)
 
 
-FACTORY = BackendDocumentsLocal
+create = BackendDocumentsLocal

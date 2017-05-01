@@ -30,6 +30,8 @@ import logging
 
 class BackendDocuments(object):
     name = "dummy"
+    projectid = None
 
-    def __init__(self):
+    def __init__(self, projectid):
         self.log = logging.getLogger("at.backend")
+        self.projectid = projectid

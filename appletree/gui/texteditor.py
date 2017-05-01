@@ -22,42 +22,35 @@
 
 import gc
 from appletree.gui.qt import Qt, FontDB, loadQImageFix
-from appletree.backend import getBackend
 from appletree.helpers import getIcon, T, genuid
 import logging
 from weakref import ref
 
 
 class QATTextDocument(Qt.QTextDocument):
-    def __init__(self, docbackend, docid, *args, **kwargs):
+    def __init__(self, project, docid, *args, **kwargs):
         super(QATTextDocument, self).__init__(*args, **kwargs)
-        self.docbackend = docbackend
+        self.project = project
         self.docid = docid
 
     def loadResource(self, p_int, _qurl):
         url = _qurl.toString()
 
-        backend = getBackend(self.docbackend)
-        # print("loadResource():", self.docid, url)
-        image = backend.getImage(self.docid, url)
+        image = self.project.doc.getImage(self.docid, url)
         return image
 
 
 class TabEditorText(Qt.QWidget):
     prevModified = False
 
-    def __init__(self, win, docbackend, docid, docname):
-        backend = getBackend(docbackend)
-        if not backend:
-            raise RuntimeError("Missing backend")
-
+    def __init__(self, win, project, docid, docname):
         Qt.QWidget.__init__(self)
+        self.project = project
         self.log = logging.getLogger("at.texteditor")
         self.win = ref(win)
 
         self.docid = docid
         self.docname = docname
-        self.docbackend = docbackend
         h1 = Qt.QVBoxLayout()
         splitter = Qt.QSplitter()
 
@@ -67,13 +60,13 @@ class TabEditorText(Qt.QWidget):
         self.editor = Qt.QTextEdit(parent=self)
         self.editor.setAcceptRichText(1)
         # self.editor = Qt.QTextDocument()
-        self.doc = QATTextDocument(docbackend, docid, parent=self.editor)
+        self.doc = QATTextDocument(self.project.doc, docid, parent=self.editor)
 
-        docbody = backend.getDocumentBody(docid)
-        images = backend.getImages(docid)
+        docbody = self.project.doc.getDocumentBody(docid)
+        images = self.project.doc.getImages(docid)
 
         for img in images:
-            image = backend.getImage(docid, img)
+            image = self.project.doc.getImage(docid, img)
             if image:
                 self.log.info("document(): add image: %s: %s", docid, img)
                 self.addImage(img, image)

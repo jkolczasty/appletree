@@ -21,16 +21,15 @@
 #
 
 from appletree.gui.mw import AppleTreeMainWindow
-from appletree.backend import loadBackend, getBackend, listBackends
+from appletree.backend import loadBackend, registerBackend
 
 
 class App(object):
     def __init__(self):
 
-        loadBackend("local")
+        registerBackend("local")
 
         self.win = AppleTreeMainWindow()
-        self.win.loadDocumentsTree()
 
     def show(self):
         self.win.show()
