@@ -148,7 +148,6 @@ class ProjectView(Qt.QWidget):
         if not docid:
             return
         docname = item.text(0)
-        print("??? open:", docid, docname)
         self.open(docid, docname)
 
     def on_tree_item_changed(self, item):

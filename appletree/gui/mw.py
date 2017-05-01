@@ -203,4 +203,3 @@ class AppleTreeMainWindow(Qt.QMainWindow):
             return None
 
         projectv.on_toolbar_save()
-        
