@@ -158,17 +158,12 @@ class ProjectView(Qt.QWidget):
             event.ignore()
             return True
 
-        source = self.tree.currentItem()
-        destination = self.tree.itemAt(event.pos())
-        if not destination:
-            event.ignore()
-            return True
-
-        srcdocbackend = source.text(1)
-        dstdocbackend = destination.text(1)
-        if srcdocbackend != dstdocbackend:
-            event.ignore()
-            return True
+        # source = self.tree.currentItem()
+        # destination = self.tree.itemAt(event.pos())
+        # if not destination:
+        #     self.log.warn("on_tree_drop_event(): No destination")
+        #     event.ignore()
+        #     return True
 
         return False
 
