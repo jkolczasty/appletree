@@ -39,7 +39,7 @@ class BackendDocumentsLocal(BackendDocuments):
     def getDocumentsTree(self):
         path = os.path.join(self.docdir, "applenote.doctree")
         try:
-            with open(path, "rb") as f:
+            with open(path, "r") as f:
                 data = json.loads(f.read())
             return data
         except Exception as e:
