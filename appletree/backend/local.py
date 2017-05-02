@@ -26,7 +26,7 @@ from codecs import encode, decode
 import json
 from appletree.config import config
 from appletree.gui.qt import Qt
-
+from hashlib import sha1
 
 class BackendDocumentsLocal(BackendDocuments):
     name = "local"
@@ -106,10 +106,15 @@ class BackendDocumentsLocal(BackendDocuments):
             self.log.error("putDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
 
     def getImage(self, docid, name):
+        if name.startswith('http://') or name.startswith('https://'):
+            _name = sha1(name.encode('utf-8')).hexdigest()
+        else:
+            _name = name
+
         path = os.path.join(self.docdir, docid)
 
-        fn = os.path.join(path, "resources", "images", name)
-        self.log.info("backend:getImage(): %s: %s: %s", docid, name, fn)
+        fn = os.path.join(path, "resources", "images", _name)
+        self.log.info("backend:getImage(): %s: %s: %s", docid, _name, fn)
 
         try:
             f = Qt.QFile(fn)
@@ -132,9 +137,14 @@ class BackendDocumentsLocal(BackendDocuments):
         return None
 
     def putImage(self, docid, name, image):
-        fn = os.path.join(self.docdir, docid, "resources", "images", name)
+        if name.startswith('http://') or name.startswith('https://'):
+            _name = sha1(name.encode('utf-8')).hexdigest()
+        else:
+            _name = name
 
-        self.log.info("backend:putImage(): %s: %s: %s", docid, name, fn)
+        fn = os.path.join(self.docdir, docid, "resources", "images", _name)
+
+        self.log.info("backend:putImage(): %s: %s: %s", docid, _name, fn)
         try:
             # TODO: support indexed colors formats like GIF?
             image.save(fn, "PNG")

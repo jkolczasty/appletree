@@ -25,19 +25,48 @@ from appletree.gui.qt import Qt, FontDB, loadQImageFix
 from appletree.helpers import getIcon, T, genuid
 import logging
 from weakref import ref
-
+import requests
+from hashlib import sha1
 
 class QATTextDocument(Qt.QTextDocument):
-    def __init__(self, project, docid, *args, **kwargs):
+    def __init__(self, editor, docid, *args, **kwargs):
         super(QATTextDocument, self).__init__(*args, **kwargs)
-        self.project = project
+        self.editor = editor
         self.docid = docid
+
+    def loadResourceRemote(self, url):
+        # TODO: show wait/progress dialog/info
+        try:
+            ret = requests.get(url)
+            if ret.status_code not in (200, ):
+                return None
+
+            data = Qt.QByteArray(ret.content)
+            image = Qt.QPixmap()
+            image.loadFromData(data)
+            data.clear()
+            # self.editor.project.doc.putImage(self.docid, url, image)
+            return image
+        except Exception as e:
+            self.log.error("Failed to retrive remote image: %s: %s", e.__class__.__name__, e)
 
     def loadResource(self, p_int, _qurl):
         url = _qurl.toString()
 
-        image = self.project.doc.getImage(self.docid, url)
-        return image
+        image = self.editor.project.doc.getImage(self.docid, url)
+        if image:
+            self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
+            return image
+
+        if url.startswith('http://') or url.startswith('https://'):
+            self.editor.log.info("Trying retrive remote image: %s", url)
+            # remote image get it from network
+            image = self.loadResourceRemote(url)
+            if image:
+                self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
+            return image
+
+        return None
 
 
 class TabEditorText(Qt.QWidget):
@@ -60,7 +89,7 @@ class TabEditorText(Qt.QWidget):
         self.editor = Qt.QTextEdit(parent=self)
         self.editor.setAcceptRichText(1)
         # self.editor = Qt.QTextDocument()
-        self.doc = QATTextDocument(self.project.doc, docid, parent=self.editor)
+        self.doc = QATTextDocument(self, docid, parent=self.editor)
 
         docbody = self.project.doc.getDocumentBody(docid)
         images = self.project.doc.getImages(docid)
@@ -177,7 +206,15 @@ class TabEditorText(Qt.QWidget):
                 if charformat.isImageFormat():
                     imageformat = charformat.toImageFormat()
                     name = imageformat.name()
-                    images.append(name)
+                    if name.startswith('http://') or name.startswith('https://'):
+                        # change image name to local one (e.g. image loaded/pasted from url)
+                        image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(name))
+                        newname = sha1(name.encode('utf-8')).hexdigest()
+                        self.doc.addResource(Qt.QTextDocument.ImageResource, Qt.QUrl(newname), image)
+                        imageformat.setName(newname)
+                        images.append(newname)
+                    else:
+                        images.append(name)
 
             block = block.next()
         return images
@@ -191,7 +228,6 @@ class TabEditorText(Qt.QWidget):
         if not image:
             image = loadQImageFix(path)
             if not image:
-                print("??????? NO IMAGE????")
                 return
 
         self.log.info("addImage(): %s: %s: %s", name, url, path)

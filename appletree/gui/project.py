@@ -28,6 +28,7 @@ from appletree.gui.qt import Qt, QtGui, QtCore
 from appletree.helpers import genuid, getIcon, T
 from appletree.gui.texteditor import TabEditorText
 from appletree.gui.treeview import QATTreeWidget
+from hashlib import sha1
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 
@@ -200,16 +201,6 @@ class ProjectView(Qt.QWidget):
         if treeitem:
             self.tree.setCurrentItem(treeitem)
 
-    def on_toolbar_bold(self):
-        docid, editor = self.getCurrentEditor()
-
-        if not editor:
-            return
-        if editor.editor.fontWeight() == QtGui.QFont.Bold:
-            editor.editor.setFontWeight(QtGui.QFont.Normal)
-        else:
-            editor.editor.setFontWeight(QtGui.QFont.Bold)
-
     def _treeFindDocument(self, docid):
         items = self.tree.findItems(docid, QtCore.Qt.MatchFixedString | QtCore.Qt.MatchRecursive, 1)
         if items:
@@ -275,20 +266,18 @@ class ProjectView(Qt.QWidget):
             # TODO: notify about desync/fail?
             return None
 
-        body = editor.getBody()
-
+        # first getimages, couse this method can change body settings
         images = editor.getImages()
+        body = editor.getBody()
         # save images
-        imagesnames = []
         for res in images:
-            imagesnames.append(res)
             url = Qt.QUrl()
             url.setUrl(res)
             resobj = editor.doc.resource(Qt.QTextDocument.ImageResource, url)
             self.project.doc.putImage(docid, res, resobj)
 
         self.project.doc.putDocumentBody(docid, body)
-        self.project.doc.clearImagesOld(docid, imagesnames)
+        self.project.doc.clearImagesOld(docid, images)
         editor.setModified(False)
 
     # on_ below are passed from mw to current project

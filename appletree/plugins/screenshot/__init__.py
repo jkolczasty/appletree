@@ -81,7 +81,6 @@ class ScreenShotPlugin(ATPlugin):
         if not dialog.exec_():
             return
         self.config['screenshot_exec'] = dialog.fields['screenshot_exec'].value
-        print("Print new screenshot settings!", self.config['screenshot_exec'])
         self.configSave()
 
 
