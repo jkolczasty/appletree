@@ -388,7 +388,7 @@ class TabEditorText(Qt.QWidget):
             menu.addSeparator()
 
             # TODO: allow plugins to modify context menus
-            action = Qt.QAction(T("Resize image"))
+            action = Qt.QAction(T("Resize image"), menu)
             action.triggered.connect(self.on_contextmenu_imageresize)
             menu.addAction(action)
 
@@ -407,7 +407,7 @@ class TabEditorText(Qt.QWidget):
 
         _format = charformat.toImageFormat()
         w, h = _format.width(), _format.height()
-        
+
         if not w or not h:
             image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(_format.name()))
             if not image:
