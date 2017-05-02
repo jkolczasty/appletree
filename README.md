@@ -7,6 +7,7 @@ Many thanks to contributors (testers and feature requests authors ;-) ):
 
 - kooziolm https://github.com/kooziolm
 - vojteq https://github.com/vojteq
+- casainho https://github.com/casainho
 
 Requirements:
 - Python 3
