@@ -60,6 +60,7 @@ class ImageResizeDialog(Qt.QDialog):
         self.setModal(True)
 
         self.ww = Qt.QSpinBox()
+        self.ww.setMinimum(16)
         self.ww.setMaximum(0xffff)
         self.ww.setValue(self.w)
         self.ww.valueChanged.connect(self.on_changed_width)
@@ -68,6 +69,7 @@ class ImageResizeDialog(Qt.QDialog):
         self.ww.setFocus()
 
         self.wh = Qt.QSpinBox()
+        self.ww.setMinimum(16)
         self.wh.setMaximum(0xffff)
         self.wh.setValue(self.h)
         self.wh.valueChanged.connect(self.on_changed_height)
