@@ -21,12 +21,113 @@
 #
 
 import gc
-from appletree.gui.qt import Qt, FontDB, loadQImageFix
-from appletree.helpers import getIcon, T, genuid
+from appletree.gui.qt import Qt, QtCore, FontDB, loadQImageFix
+from appletree.helpers import getIcon, T, genuid, messageDialog
 import logging
 from weakref import ref
 import requests
 from hashlib import sha1
+
+
+class ImageResizeDialog(Qt.QDialog):
+    def __init__(self, win, title, name, w, h):
+        super(ImageResizeDialog, self).__init__(win)
+        self.w = w
+        self.h = h
+        self.keepaspect = True
+        self.aspect = float(w)/float(h)
+        self.result = False
+
+        self.setWindowTitle(title)
+        self.vbox = Qt.QVBoxLayout(self)
+        self.vbox.addWidget(Qt.QLabel(T(name)))
+
+        self.box = Qt.QGroupBox(self)
+        self.form = Qt.QFormLayout(self.box)
+
+        buttonbox = Qt.QDialogButtonBox()
+        buttonbox.setGeometry(Qt.QRect(150, 250, 341, 32))
+        buttonbox.setOrientation(QtCore.Qt.Horizontal)
+        buttonbox.setStandardButtons(Qt.QDialogButtonBox.Cancel | Qt.QDialogButtonBox.Ok)
+        buttonbox.setWindowTitle(title)
+
+        self.vbox.addWidget(self.box)
+        self.vbox.addWidget(buttonbox)
+        self.vbox.setStretch(2, 0)
+
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        #self.setWindowModality(QtCore.QCoreApplication)
+        self.setModal(True)
+
+        self.ww = Qt.QSpinBox()
+        self.ww.setMaximum(0xffff)
+        self.ww.setValue(self.w)
+        self.ww.valueChanged.connect(self.on_changed_width)
+        self.form.addRow(T("Width"), self.ww)
+
+        self.ww.setFocus()
+
+        self.wh = Qt.QSpinBox()
+        self.wh.setMaximum(0xffff)
+        self.wh.setValue(self.h)
+        self.wh.valueChanged.connect(self.on_changed_height)
+        self.form.addRow(T("Height"), self.wh)
+
+        widget = Qt.QCheckBox()
+        widget.setChecked(True)
+        widget.stateChanged.connect(self.on_changed_aspect)
+        self.form.addRow(T("Keep aspect"), widget)
+
+        buttonbox.accepted.connect(self.on_accept)
+        buttonbox.rejected.connect(self.on_reject)
+        # QtCore.QMetaObject.connectSlotsByName(Dialog)
+        self.adjustSize()
+        self.setMinimumWidth(600)
+        self.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.MinimumExpanding)
+
+    def exec_(self):
+        super(ImageResizeDialog, self).exec_()
+        # del self.fields
+        return self.result
+
+    def on_accept(self):
+        self.result = True
+        self.close()
+
+    def on_reject(self):
+        self.result = False
+        self.close()
+
+    def on_changed_width(self, w):
+        self.w = w
+        if not self.keepaspect:
+            return
+
+        self.keepaspect = False
+        h = float(w) / self.aspect
+        self.wh.setValue(int(h))
+        self.keepaspect = True
+
+    def on_changed_height(self, h):
+        self.h = h
+        if not self.keepaspect:
+            return
+        self.keepaspect = False
+        w = float(h) * self.aspect
+        self.ww.setValue(int(w))
+        self.keepaspect = True
+
+    def on_changed_aspect(self, newvalue):
+        self.keepaspect = newvalue
+
+
+class QTextEdit(Qt.QTextEdit):
+    contextMenuEventSingal = Qt.pyqtSignal(object)
+
+    # def mouseReleaseEvent(self, event):
+    def contextMenuEvent(self, event):
+        self.contextMenuEventSingal.emit(event)
+
 
 class QATTextDocument(Qt.QTextDocument):
     def __init__(self, editor, docid, *args, **kwargs):
@@ -38,7 +139,7 @@ class QATTextDocument(Qt.QTextDocument):
         # TODO: show wait/progress dialog/info
         try:
             ret = requests.get(url)
-            if ret.status_code not in (200, ):
+            if ret.status_code not in (200,):
                 return None
 
             data = Qt.QByteArray(ret.content)
@@ -78,6 +179,9 @@ class TabEditorText(Qt.QWidget):
         self.log = logging.getLogger("at.texteditor")
         self.win = ref(win)
 
+        # keep cursorpos for some deffered events
+        self.cursorpos = None
+
         self.docid = docid
         self.docname = docname
         h1 = Qt.QVBoxLayout()
@@ -86,9 +190,8 @@ class TabEditorText(Qt.QWidget):
         self.setLayout(h1)
         h1.addWidget(splitter)
 
-        self.editor = Qt.QTextEdit(parent=self)
+        self.editor = QTextEdit(parent=self)
         self.editor.setAcceptRichText(1)
-        # self.editor = Qt.QTextDocument()
         self.doc = QATTextDocument(self, docid, parent=self.editor)
 
         docbody = self.project.doc.getDocumentBody(docid)
@@ -144,6 +247,7 @@ class TabEditorText(Qt.QWidget):
 
         # self.connect(self.editor, Qt.SIGNAL("textChanged()"), self.on_text_changed)
         self.editor.textChanged.connect(self.on_text_changed)
+        self.editor.contextMenuEventSingal.connect(self.on_contextmenu_event)
 
     def destroy(self, *args):
         self.log.info("Destroy")
@@ -265,3 +369,63 @@ class TabEditorText(Qt.QWidget):
 
         name = self.docname if not modified else self.docname + " *"
         win.tabSetLabel(self.docid, name)
+
+    def on_contextmenu_event(self, event):
+        pos = event.pos()
+        if not pos:
+            return
+        cursor = self.editor.cursorForPosition(pos)
+        if not cursor:
+            return
+
+        self.cursorpos = pos
+        menu = self.editor.createStandardContextMenu()
+
+        charformat = cursor.charFormat()
+        if charformat.isImageFormat():
+            menu.addSeparator()
+
+            # TODO: allow plugins to modify context menus
+            action = Qt.QAction(T("Resize image"))
+            action.triggered.connect(self.on_contextmenu_imageresize)
+            menu.addAction(action)
+
+        menu.exec_(event.globalPos())
+        del menu
+        self.cursorpos = None
+
+    def on_contextmenu_imageresize(self, *args):
+        cursor = self.editor.cursorForPosition(self.cursorpos)
+        if not cursor:
+            return
+
+        charformat = cursor.charFormat()
+        if not charformat or not charformat.isImageFormat():
+            return
+
+        _format = charformat.toImageFormat()
+
+        resizedialog = ImageResizeDialog(self.win(), "Resize image", "Resize image", _format.width(), _format.height())
+
+        if not resizedialog.exec_():
+            return
+
+        w = resizedialog.w
+        h = resizedialog.h
+
+        _format.setWidth(w)
+        _format.setHeight(h)
+
+        # now we need to find that block -> fragment in document now
+        block = cursor.block()
+        if not block:
+            return
+        it = block.begin()
+        fragment = it.fragment()
+        if not fragment:
+            return
+
+        cursor2 = self.editor.textCursor()
+        cursor2.setPosition(fragment.position())
+        cursor2.setPosition(fragment.position() + fragment.length(), Qt.QTextCursor.KeepAnchor)
+        cursor2.setCharFormat(_format)

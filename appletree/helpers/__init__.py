@@ -37,3 +37,22 @@ def genuid():
 def getIcon(name):
     fn = os.path.join("icons", name + ".png")
     return Qt.QIcon(fn)
+
+
+def messageDialog(title, message, details=None, OkCancel=False, icon=None):
+    msg = Qt.QMessageBox()
+    if icon:
+        msg.setIcon(icon)
+    else:
+        msg.setIcon(Qt.QMessageBox.Information)
+
+    msg.setText(title)
+    msg.setWindowTitle(title)
+    if details:
+        msg.setDetailedText(details)
+    if OkCancel:
+        msg.setStandardButtons(Qt.QMessageBox.Ok | Qt.QMessageBox.Cancel)
+    else:
+        msg.setStandardButtons(Qt.QMessageBox.Ok)
+
+    return msg.exec_()
