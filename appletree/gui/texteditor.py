@@ -406,8 +406,17 @@ class TabEditorText(Qt.QWidget):
             return
 
         _format = charformat.toImageFormat()
+        w, h = _format.width(), _format.height()
+        
+        if not w or not h:
+            image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(_format.name()))
+            if not image:
+                return
+            w, h = image.width(), image.height()
+            if not w or not h:
+                return
 
-        resizedialog = ImageResizeDialog(self.win(), "Resize image", "Resize image", _format.width(), _format.height())
+        resizedialog = ImageResizeDialog(self.win(), "Resize image", "Resize image", w, h)
 
         if not resizedialog.exec_():
             return
