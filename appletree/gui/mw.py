@@ -66,10 +66,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
              ])
 
         self.toolbar.addWithSeparatorLeft(
-            [dict(name='Bold', icon='bold', shortcut='CTRL+B', callback=self.on_toolbar_bold),
-             ])
-
-        self.toolbar.addWithSeparatorLeft(
             [
                 dict(name='Insert image', icon='image-insert', shortcut='CTRL+SHIFT+I',
                      callback=self.on_toolbar_insert_image),
@@ -119,14 +115,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
     def projectCreate(self, name, docbackend, syncbackend, projectid=None):
         return self.projects.create(name, docbackend, syncbackend, projectid=projectid)
-
-    def on_toolbar_bold(self):
-        projectid, projectv = self.getCurrentProject()
-        if not projectid:
-            self.log.warn("on_toolbar_bold(): No project selected")
-            return
-
-        projectv.on_toolbar_bold()
 
     def getCurrentProject(self):
         index = self.tabs.currentIndex()

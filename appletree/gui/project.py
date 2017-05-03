@@ -333,18 +333,7 @@ class ProjectView(Qt.QWidget):
         self.saveDocumentsTree()
 
     # on_ below are passed from mw to current project
-
-    def on_toolbar_bold(self):
-        docid, editor = self.getCurrentEditor()
-
-        if not editor:
-            return
-        if editor.editor.fontWeight() == QtGui.QFont.Bold:
-            editor.editor.setFontWeight(QtGui.QFont.Normal)
-        else:
-            editor.editor.setFontWeight(QtGui.QFont.Bold)
-        pass
-
+    
     def on_toolbar_insert_image(self, *args):
         docid, editor = self.getCurrentEditor()
 

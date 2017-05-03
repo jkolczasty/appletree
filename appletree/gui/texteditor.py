@@ -21,7 +21,7 @@
 #
 
 import gc
-from appletree.gui.qt import Qt, QtCore, FontDB, loadQImageFix
+from appletree.gui.qt import Qt, QtCore, QtGui, FontDB, loadQImageFix
 from appletree.helpers import getIcon, T, genuid, messageDialog
 import logging
 from weakref import ref
@@ -126,10 +126,41 @@ class ImageResizeDialog(Qt.QDialog):
 class QTextEdit(Qt.QTextEdit):
     contextMenuEventSingal = Qt.pyqtSignal(object)
 
+    def __init__(self, *args, **kwargs):
+        super(QTextEdit, self).__init__()
+
+        self.addShortcut('CTRL+B', self.on_bold)
+        self.addShortcut('CTRL+I', self.on_italic)
+        self.addShortcut('CTRL+U', self.on_underline)
+        self.addShortcut('CTRL+-', self.on_strikeout)
+
+    def addShortcut(self, shortcut, callback):
+        action = Qt.QAction(self)
+        action.setShortcut(shortcut)
+        action.triggered.connect(callback)
+        self.addAction(action)
+
     # def mouseReleaseEvent(self, event):
     def contextMenuEvent(self, event):
         self.contextMenuEventSingal.emit(event)
 
+    def on_bold(self):
+        if self.fontWeight() == QtGui.QFont.Bold:
+            self.setFontWeight(QtGui.QFont.Normal)
+        else:
+            self.setFontWeight(QtGui.QFont.Bold)
+
+    def on_italic(self):
+        self.setFontItalic(not self.fontItalic())
+
+    def on_underline(self):
+        self.setFontUnderline(not self.fontUnderline())
+
+    def on_strikeout(self):
+        # not implemented
+        font = self.currentFont()
+        font.setStrikeOut(not font.strikeOut())
+        self.setCurrentFont(font)
 
 class QATTextDocument(Qt.QTextDocument):
     def __init__(self, editor, docid, *args, **kwargs):
