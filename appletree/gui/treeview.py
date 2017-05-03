@@ -96,18 +96,17 @@ class QATTreeWidget(Qt.QTreeWidget):
             return
 
         items = self.selectedItems()
-        if not items:
-            return
-        item = items[0]
-        uid = item.text(1)
-        if uid == _CLONE_ITEM[1]:
-            # can not clone to the same place
-            return
-
-        if not messageDialog("Subtree paste", "Are you sure you want to paste subtree here? This feature is unstable and can fail. Source: {0}".format(_CLONE_ITEM), OkCancel=True):
-            return
+        if items:
+            item = items[0]
+            uid = item.text(1)
+            if uid == _CLONE_ITEM[1]:
+                # can not clone to the same place
+                return
+        else:
+            uid = None
 
         win.cloneDocuments(_CLONE_ITEM[0], _CLONE_ITEM[1], uid)
+        _CLONE_ITEM = None
 
     def on_contextmenu_remove(self):
         win = self.win()

@@ -225,6 +225,8 @@ class ProjectView(Qt.QWidget):
             for child in item.takeChildren():
                 del child
             parent = item.parent()
+            if not parent:
+                parent = self.tree.invisibleRootItem()
             index = parent.indexOfChild(item)
             parent.takeChild(index)
 
@@ -341,6 +343,13 @@ class ProjectView(Qt.QWidget):
             self.treeready = False
             # find document subtree (excluding root src document) in src project tree:
             doctree, count = srcprojectv.getDocumentTree(docid=srcdocumentid)
+
+            if not messageDialog("Subtree paste",
+                                 "Are you sure you want to paste subtree here?",
+                                 details="Subtree elements: {0}".format(count),
+                                 OkCancel=True):
+                return
+
             self._cloneDocuments(srcdocumentid, srcname, doctree, dstdocumentid, srcprojectv)
         finally:
             self.treeready = True
@@ -372,17 +381,9 @@ class ProjectView(Qt.QWidget):
         name = item.text(0)
         uid = item.text(1)
 
-        index = self.tabFind(docid)
-        if index is None:
-            return
-
-        tab = self.tabs.widget(index)
-        if not tab:
-            return
-
         # get subtree elements and close tabs if opened before removing documents
         tree, count = self.getDocumentTree(docid=uid)
-        if not tree:
+        if count == 0:
             return
 
         if not messageDialog("Subtree remove",
