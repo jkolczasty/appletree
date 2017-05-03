@@ -20,15 +20,34 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt
 from weakref import ref
+from appletree.gui.qt import Qt
+from appletree.helpers import T, messageDialog
+
+
+_CLONE_ITEM = None
 
 
 class QATTreeWidget(Qt.QTreeWidget):
+    menu = None
+
     def __init__(self, win, parent=None):
         super(QATTreeWidget, self).__init__(parent)
         self.setAcceptDrops(True)
         self.win = ref(win)
+
+        self.menu = Qt.QMenu()
+
+        # TODO: allow plugins to modify context menus
+        action = Qt.QAction(T("Copy subtree"), self.menu)
+        action.triggered.connect(self.on_contextmenu_copy)
+        self.menu.addAction(action)
+
+        action = Qt.QAction(T("Paste subtree"), self.menu)
+        action.triggered.connect(self.on_contextmenu_paste)
+        action.setDisabled(True)
+        self.menupaste = action
+        self.menu.addAction(action)
 
     def dropEvent(self, event):
         win = self.win()
@@ -42,3 +61,45 @@ class QATTreeWidget(Qt.QTreeWidget):
         ret = super(QATTreeWidget, self).dropEvent(event)
         win.on_tree_drop_after_event()
         return ret
+
+    def contextMenuEvent(self, event):
+        global _CLONE_ITEM
+
+        self.menupaste.setDisabled(_CLONE_ITEM is None)
+        self.menu.exec_(event.globalPos())
+
+    def on_contextmenu_copy(self):
+        global _CLONE_ITEM
+        win = self.win()
+        if not win:
+            return
+        projectid = win.project.projectid
+        items = self.selectedItems()
+        if not items:
+            return
+        item = items[0]
+        name = item.text(0)
+        uid = item.text(1)
+        _CLONE_ITEM = (projectid, uid, name)
+
+    def on_contextmenu_paste(self):
+        global _CLONE_ITEM
+        if not _CLONE_ITEM:
+            return
+        win = self.win()
+        if not win:
+            return
+
+        items = self.selectedItems()
+        if not items:
+            return
+        item = items[0]
+        uid = item.text(1)
+        if uid == _CLONE_ITEM[1]:
+            # can not clone to the same place
+            return
+
+        if not messageDialog("Subtree paste", "Are you sure you want to paste subtree here? This feature is unstable and can fail. Source: {0}".format(_CLONE_ITEM), OkCancel=True):
+            return
+
+        win.cloneDocuments(_CLONE_ITEM[0], _CLONE_ITEM[1], uid)

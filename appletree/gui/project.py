@@ -24,18 +24,19 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import logging
+from weakref import ref
 from appletree.gui.qt import Qt, QtGui, QtCore
 from appletree.helpers import genuid, getIcon, T
 from appletree.gui.texteditor import TabEditorText
 from appletree.gui.treeview import QATTreeWidget
-from hashlib import sha1
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 
 
 class ProjectView(Qt.QWidget):
-    def __init__(self, project, *args):
-        super(ProjectView, self).__init__(*args)
+    def __init__(self, win, project, *args):
+        super(ProjectView, self).__init__(win, *args)
+        self.win = ref(win)
         self.setAccessibleName(project.projectid)
 
         self.project = project
@@ -109,14 +110,21 @@ class ProjectView(Qt.QWidget):
 
         self.treeready = True
 
-    def _getDocumentTree(self, root):
+    def getDocumentTree(self, root=None, docid=None):
         tree = []
+        if root is None:
+            if docid is None:
+                return tree
+            root = self.treeFindDocument(docid)
+            if not root:
+                return tree
+
         for i in range(0, root.childCount()):
             child = root.child(i)
             # name, docbackend, docid
             docname = child.text(0)
             docid = child.text(1)
-            tree.append((docid, docname, self._getDocumentTree(child)))
+            tree.append((docid, docname, self.getDocumentTree(child)))
 
         return tree
 
@@ -127,7 +135,7 @@ class ProjectView(Qt.QWidget):
         backend = self.project.doc
 
         root = self.tree.invisibleRootItem()
-        tree = self._getDocumentTree(root)
+        tree = self.getDocumentTree(root)
 
         backend.setDocumentsTree(tree)
 
@@ -150,7 +158,12 @@ class ProjectView(Qt.QWidget):
     def on_tree_item_changed(self, item):
         if not self.treeready:
             return
-        self.log.info("on_tree_item_changed()")
+        self.log.info("on_tree_item_changed(): %s")
+        name = item.text(0)
+        uid = item.text(1)
+        if not uid:
+            return
+        self.tabSetLabel(uid, name)
         self.saveDocumentsTree()
 
     def on_tree_drop_event(self, event):
@@ -158,13 +171,6 @@ class ProjectView(Qt.QWidget):
         if dropaction != QtCore.Qt.MoveAction:
             event.ignore()
             return True
-
-        # source = self.tree.currentItem()
-        # destination = self.tree.itemAt(event.pos())
-        # if not destination:
-        #     self.log.warn("on_tree_drop_event(): No destination")
-        #     event.ignore()
-        #     return True
 
         return False
 
@@ -196,12 +202,12 @@ class ProjectView(Qt.QWidget):
 
         docid = widget.accessibleName()
         self.log.info("on_tab_current_changed(): docid %s", docid)
-        treeitem = self._treeFindDocument(docid)
+        treeitem = self.treeFindDocument(docid)
         self.log.info("on_tab_current_changed(): treeitem %s", treeitem)
         if treeitem:
             self.tree.setCurrentItem(treeitem)
 
-    def _treeFindDocument(self, docid):
+    def treeFindDocument(self, docid):
         items = self.tree.findItems(docid, QtCore.Qt.MatchFixedString | QtCore.Qt.MatchRecursive, 1)
         if items:
             return items[0]
@@ -211,7 +217,7 @@ class ProjectView(Qt.QWidget):
     def addDocumentTree(self, docid, name, parent):
         if parent:
             # TODO: find parent in tree
-            parent = self._treeFindDocument(parent)
+            parent = self.treeFindDocument(parent)
         else:
             parent = self.tree.invisibleRootItem()
 
@@ -279,6 +285,52 @@ class ProjectView(Qt.QWidget):
         self.project.doc.putDocumentBody(docid, body)
         self.project.doc.clearImagesOld(docid, images)
         editor.setModified(False)
+
+    def _cloneDocuments(self, srcuid, srcname, items, parent, srcprojectv):
+        dstuid = genuid()
+
+        docbody = srcprojectv.project.doc.getDocumentBody(srcuid)
+        images = srcprojectv.project.doc.getImages(srcuid)
+
+        self.project.doc.putDocumentBody(dstuid, docbody)
+        for image in images:
+            __image = srcprojectv.project.doc.getImage(srcuid, image)
+            self.project.doc.putImage(dstuid, image, __image)
+
+        self.addDocumentTree(dstuid, srcname, parent)
+
+        for childsrcuid, childsrcname, childitems in items:
+            self._cloneDocuments(childsrcuid, childsrcname, childitems, dstuid, srcprojectv)
+
+    def cloneDocuments(self, srcprojectid, srcdocumentid, dstdocumentid):
+        """ clone documents from source project:document to this:document"""
+
+        if not self.treeready:
+            return
+
+        self.log.info("Clone documents from %s:%s to %s", srcprojectid, srcdocumentid, dstdocumentid)
+        win = self.win()
+        if not win:
+            return
+
+        srcprojectv = win.projectsViews.get(srcprojectid)
+        if not srcdocumentid:
+            self.log.warn("Can't clone documents, src project is not opened: %s", srcprojectid)
+            return
+
+        srcitem = srcprojectv.treeFindDocument(srcdocumentid)
+        if not srcitem:
+            return
+        srcname = srcitem.text(0)
+
+        try:
+            self.treeready = False
+            # find document subtree (excluding root src document) in src project tree:
+            doctree = srcprojectv.getDocumentTree(docid=srcdocumentid)
+            self._cloneDocuments(srcdocumentid, srcname, doctree, dstdocumentid, srcprojectv)
+        finally:
+            self.treeready = True
+        self.saveDocumentsTree()
 
     # on_ below are passed from mw to current project
 

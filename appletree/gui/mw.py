@@ -110,7 +110,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         if project is None:
             return None
 
-        projectv = ProjectView(project, self)
+        projectv = ProjectView(self, project)
         projectv.loadDocumentsTree()
         self.tabs.addTab(projectv, project.name)
         self.projectsViews[projectid] = projectv

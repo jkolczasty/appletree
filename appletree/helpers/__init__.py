@@ -46,7 +46,7 @@ def messageDialog(title, message, details=None, OkCancel=False, icon=None):
     else:
         msg.setIcon(Qt.QMessageBox.Information)
 
-    msg.setText(title)
+    msg.setText(message)
     msg.setWindowTitle(title)
     if details:
         msg.setDetailedText(details)
@@ -55,4 +55,4 @@ def messageDialog(title, message, details=None, OkCancel=False, icon=None):
     else:
         msg.setStandardButtons(Qt.QMessageBox.Ok)
 
-    return msg.exec_()
+    return msg.exec_()== Qt.QMessageBox.Ok
