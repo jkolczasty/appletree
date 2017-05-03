@@ -26,7 +26,7 @@ from __future__ import print_function
 import logging
 from weakref import ref
 from appletree.gui.qt import Qt, QtGui, QtCore
-from appletree.helpers import genuid, getIcon, T
+from appletree.helpers import genuid, getIcon, T, messageDialog
 from appletree.gui.texteditor import TabEditorText
 from appletree.gui.treeview import QATTreeWidget
 
@@ -111,22 +111,26 @@ class ProjectView(Qt.QWidget):
         self.treeready = True
 
     def getDocumentTree(self, root=None, docid=None):
+        # WARN: changed return value!
+        count = 0
         tree = []
         if root is None:
             if docid is None:
-                return tree
+                return tree, count
             root = self.treeFindDocument(docid)
             if not root:
-                return tree
-
+                return tree, count
+        count = 1
         for i in range(0, root.childCount()):
             child = root.child(i)
             # name, docbackend, docid
             docname = child.text(0)
             docid = child.text(1)
-            tree.append((docid, docname, self.getDocumentTree(child)))
+            children, childrencount = self.getDocumentTree(child)
+            count += childrencount
+            tree.append((docid, docname, children))
 
-        return tree
+        return tree, count
 
     def saveDocumentsTree(self):
         if not self.treeready:
@@ -135,7 +139,7 @@ class ProjectView(Qt.QWidget):
         backend = self.project.doc
 
         root = self.tree.invisibleRootItem()
-        tree = self.getDocumentTree(root)
+        tree, count = self.getDocumentTree(root)
 
         backend.setDocumentsTree(tree)
 
@@ -180,7 +184,7 @@ class ProjectView(Qt.QWidget):
         self.log.info("on_tree_drop_after_event()")
         self.saveDocumentsTree()
 
-    def on_tab_close_req(self, index):
+    def on_tab_close_req(self, index, ignoreChanges=False):
         widget = self.tabs.widget(index)
         docid = widget.accessibleName()
         # noinspection PyBroadException
@@ -213,6 +217,16 @@ class ProjectView(Qt.QWidget):
             return items[0]
 
         return None
+
+    def treeRemoveDocument(self, docid):
+        items = self.tree.findItems(docid, QtCore.Qt.MatchFixedString | QtCore.Qt.MatchRecursive, 1)
+        if items:
+            item = items[0]
+            for child in item.takeChildren():
+                del child
+            parent = item.parent()
+            index = parent.indexOfChild(item)
+            parent.takeChild(index)
 
     def addDocumentTree(self, docid, name, parent):
         if parent:
@@ -326,14 +340,65 @@ class ProjectView(Qt.QWidget):
         try:
             self.treeready = False
             # find document subtree (excluding root src document) in src project tree:
-            doctree = srcprojectv.getDocumentTree(docid=srcdocumentid)
+            doctree, count = srcprojectv.getDocumentTree(docid=srcdocumentid)
             self._cloneDocuments(srcdocumentid, srcname, doctree, dstdocumentid, srcprojectv)
         finally:
             self.treeready = True
         self.saveDocumentsTree()
 
+    def closeTreeTabs(self, docid, items):
+        index = self.tabFind(docid)
+        if index is not None:
+            self.on_tab_close_req(index, ignoreChanges=True)
+
+        for childuid, childname, childitems in items:
+            self.closeTreeTabs(childuid, childitems)
+
+    def removeDocuments(self, docid, items):
+        for childuid, childname, childitems in items:
+            self.removeDocuments(childuid, childitems)
+
+        self.treeRemoveDocument(docid)
+        self.project.doc.removeDocument(docid)
+
+    def removeDocument(self, docid):
+        if not self.treeready:
+            return
+
+        item = self.treeFindDocument(docid)
+        if not item:
+            return
+
+        name = item.text(0)
+        uid = item.text(1)
+
+        index = self.tabFind(docid)
+        if index is None:
+            return
+
+        tab = self.tabs.widget(index)
+        if not tab:
+            return
+
+        # get subtree elements and close tabs if opened before removing documents
+        tree, count = self.getDocumentTree(docid=uid)
+        if not tree:
+            return
+
+        if not messageDialog("Subtree remove",
+                             "Are you sure you want to remove subtree here? This operation is unrecoverable",
+                             details="Root document: {0}\nSubtree elements: {1}".format(name, count), OkCancel=True):
+            return
+        try:
+            self.treeready = False
+            self.closeTreeTabs(docid, tree)
+            self.removeDocuments(docid, tree)
+        finally:
+            self.treeready = True
+            self.saveDocumentsTree()
+
     # on_ below are passed from mw to current project
-    
+
     def on_toolbar_insert_image(self, *args):
         docid, editor = self.getCurrentEditor()
 
@@ -400,14 +465,14 @@ class NewProjectDialog(Qt.QDialog):
         self.vbox.setStretch(2, 0)
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        #self.setWindowModality(Qt.Q ApplicationModal)
+        # self.setWindowModality(Qt.Q ApplicationModal)
 
         buttonbox.accepted.connect(self.on_accept)
         buttonbox.rejected.connect(self.on_reject)
         # QtCore.QMetaObject.connectSlotsByName(Dialog)
         self.adjustSize()
         self.setMinimumWidth(600)
-        self.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(Qt.QSizePolicy.MinimumExpanding, Qt.QSizePolicy.MinimumExpanding)
 
         inputwidget = Qt.QLineEdit()
         inputwidget.textChanged.connect(self.on_changed_name)
@@ -421,7 +486,6 @@ class NewProjectDialog(Qt.QDialog):
         self.adjustSize()
 
     def exec_(self):
-
         super(NewProjectDialog, self).exec_()
         # del self.fields
         return self.result

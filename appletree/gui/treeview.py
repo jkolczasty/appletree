@@ -48,6 +48,11 @@ class QATTreeWidget(Qt.QTreeWidget):
         action.setDisabled(True)
         self.menupaste = action
         self.menu.addAction(action)
+        self.menu.addSeparator()
+
+        action = Qt.QAction(T("Remove subtree"), self.menu)
+        action.triggered.connect(self.on_contextmenu_remove)
+        self.menu.addAction(action)
 
     def dropEvent(self, event):
         win = self.win()
@@ -103,3 +108,16 @@ class QATTreeWidget(Qt.QTreeWidget):
             return
 
         win.cloneDocuments(_CLONE_ITEM[0], _CLONE_ITEM[1], uid)
+
+    def on_contextmenu_remove(self):
+        win = self.win()
+        if not win:
+            return
+
+        items = self.selectedItems()
+        if not items:
+            return
+        item = items[0]
+        uid = item.text(1)
+
+        win.removeDocument(uid)

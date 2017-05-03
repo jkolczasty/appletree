@@ -27,6 +27,8 @@ import json
 from appletree.config import config
 from appletree.gui.qt import Qt
 from hashlib import sha1
+import shutil
+
 
 class BackendDocumentsLocal(BackendDocuments):
     name = "local"
@@ -104,6 +106,19 @@ class BackendDocumentsLocal(BackendDocuments):
             return True
         except Exception as e:
             self.log.error("putDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+
+    def removeDocument(self, docid):
+        path = os.path.join(self.docdir, docid)
+
+        if not os.path.exists(path):
+            return
+
+        self.log.info("backend:removeDocument(): %s: %s", docid, path)
+        try:
+            shutil.rmtree(path, True)
+            return True
+        except Exception as e:
+            self.log.error("removeDocument(): exception: %s: %s: %s", path, e.__class__.__name__, e)
 
     def getImage(self, docid, name):
         if name.startswith('http://') or name.startswith('https://'):

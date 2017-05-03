@@ -162,6 +162,7 @@ class QTextEdit(Qt.QTextEdit):
         font.setStrikeOut(not font.strikeOut())
         self.setCurrentFont(font)
 
+
 class QATTextDocument(Qt.QTextDocument):
     def __init__(self, editor, docid, *args, **kwargs):
         super(QATTextDocument, self).__init__(*args, **kwargs)
