@@ -27,6 +27,7 @@ from weakref import ref
 import requests
 from hashlib import sha1
 import urllib.parse
+import html
 
 
 class ImageResizeDialog(Qt.QDialog):
@@ -176,8 +177,8 @@ class QTextEdit(Qt.QTextEdit):
             for url in mime.urls():
                 _url = url.toString()
                 cursor = self.textCursor()
-                _qurl = urllib.parse.quote(_url)
-                cursor.insertHtml("<a href='{0}'>{1}</a>".format(_qurl, _url))
+                _qurl = urllib.parse.quote(_url, safe="://")
+                cursor.insertHtml("<a href='{0}'>{1}</a>".format(_qurl, html.escape(_url)))
             return
 
         super(QTextEdit, self).insertFromMimeData(mime)
