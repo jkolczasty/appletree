@@ -20,13 +20,13 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-import gc
 from appletree.gui.qt import Qt, QtCore, QtGui, FontDB, loadQImageFix
 from appletree.helpers import getIcon, T, genuid, messageDialog
 import logging
 from weakref import ref
 import requests
 from hashlib import sha1
+import urllib.parse
 
 
 class ImageResizeDialog(Qt.QDialog):
@@ -125,10 +125,21 @@ class ImageResizeDialog(Qt.QDialog):
 
 class QTextEdit(Qt.QTextEdit):
     contextMenuEventSingal = Qt.pyqtSignal(object)
+    linkClicked = Qt.pyqtSignal(object)
+    clickedAnchor = None
 
     def __init__(self, *args, **kwargs):
         super(QTextEdit, self).__init__()
-
+        # self.contextMenuEventSingal = Qt.pyqtSignal(object)
+        flags = self.textInteractionFlags()
+        print(flags, dir(flags))
+        flags = QtCore.Qt.TextInteractionFlags(flags)
+        flags |= QtCore.Qt.LinksAccessibleByMouse
+        flags |= QtCore.Qt.LinksAccessibleByKeyboard
+        print(flags, dir(flags))
+        self.setTextInteractionFlags(flags)
+        self.setAcceptRichText(True)
+        self.setAutoFormatting(QTextEdit.AutoAll)
         self.addShortcut('CTRL+B', self.on_bold)
         self.addShortcut('CTRL+I', self.on_italic)
         self.addShortcut('CTRL+U', self.on_underline)
@@ -140,9 +151,36 @@ class QTextEdit(Qt.QTextEdit):
         action.triggered.connect(callback)
         self.addAction(action)
 
-    # def mouseReleaseEvent(self, event):
+    def mousePressEvent(self, event):
+        pos = event.pos()
+        self.clickedAnchor = self.anchorAt(pos)
+        return super(QTextEdit, self).mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.clickedAnchor and (event.button() & QtCore.Qt.LeftButton) and (event.modifiers() & QtCore.Qt.ControlModifier):
+            pos = event.pos()
+            clickedAnchor = self.anchorAt(pos)
+
+            messageDialog("Link clicked", "Link you clicked: {0}".format(clickedAnchor), details=clickedAnchor)
+            self.linkClicked.emit(event)
+
+            self.clickedAnchor = None
+            return
+        return super(QTextEdit, self).mouseReleaseEvent(event)
+
     def contextMenuEvent(self, event):
         self.contextMenuEventSingal.emit(event)
+
+    def insertFromMimeData(self, mime):
+        if mime.hasUrls():
+            for url in mime.urls():
+                _url = url.toString()
+                cursor = self.textCursor()
+                _qurl = urllib.parse.quote(_url)
+                cursor.insertHtml("<a href='{0}'>{1}</a>".format(_qurl, _url))
+            return
+
+        super(QTextEdit, self).insertFromMimeData(mime)
 
     def on_bold(self):
         if self.fontWeight() == QtGui.QFont.Bold:
@@ -224,7 +262,6 @@ class TabEditorText(Qt.QWidget):
         h1.addWidget(splitter)
 
         self.editor = QTextEdit(parent=self)
-        self.editor.setAcceptRichText(1)
         self.doc = QATTextDocument(self, docid, parent=self.editor)
 
         docbody = self.project.doc.getDocumentBody(docid)
