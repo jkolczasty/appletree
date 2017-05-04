@@ -28,6 +28,9 @@ import requests
 from hashlib import sha1
 import urllib.parse
 import html
+import re
+
+RE_URL = re.compile(r'(file|http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?')
 
 
 class ImageResizeDialog(Qt.QDialog):
@@ -36,7 +39,7 @@ class ImageResizeDialog(Qt.QDialog):
         self.w = w
         self.h = h
         self.keepaspect = True
-        self.aspect = float(w)/float(h)
+        self.aspect = float(w) / float(h)
         self.result = False
 
         self.setWindowTitle(title)
@@ -57,7 +60,7 @@ class ImageResizeDialog(Qt.QDialog):
         self.vbox.setStretch(2, 0)
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        #self.setWindowModality(QtCore.QCoreApplication)
+        # self.setWindowModality(QtCore.QCoreApplication)
         self.setModal(True)
 
         self.ww = Qt.QSpinBox()
@@ -86,7 +89,7 @@ class ImageResizeDialog(Qt.QDialog):
         # QtCore.QMetaObject.connectSlotsByName(Dialog)
         self.adjustSize()
         self.setMinimumWidth(600)
-        self.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(Qt.QSizePolicy.MinimumExpanding, Qt.QSizePolicy.MinimumExpanding)
 
     def exec_(self):
         super(ImageResizeDialog, self).exec_()
@@ -156,7 +159,8 @@ class QTextEdit(Qt.QTextEdit):
         return super(QTextEdit, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self.clickedAnchor and (event.button() & QtCore.Qt.LeftButton) and (event.modifiers() & QtCore.Qt.ControlModifier):
+        if self.clickedAnchor and (event.button() & QtCore.Qt.LeftButton) and (
+            event.modifiers() & QtCore.Qt.ControlModifier):
             pos = event.pos()
             clickedAnchor = self.anchorAt(pos)
 
@@ -171,6 +175,21 @@ class QTextEdit(Qt.QTextEdit):
         self.contextMenuEventSingal.emit(event)
 
     def insertFromMimeData(self, mime):
+        if mime.hasText():
+            global RE_URL
+            s = mime.text()
+            # replace links
+            s = html.escape(s, quote=False)
+            for item in RE_URL.finditer(s):
+                url = item.group(0)
+                _url = urllib.parse.urlparse(url)
+                _url = _url.geturl()
+                s = s.replace(url, "<a href='{0}'>{1}</a>&nbsp;".format(_url, _url))
+
+            cursor = self.textCursor()
+            cursor.insertHtml(s)
+            return
+
         if mime.hasUrls():
             for url in mime.urls():
                 _url = url.url()
