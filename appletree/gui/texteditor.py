@@ -174,12 +174,10 @@ class QTextEdit(Qt.QTextEdit):
         if mime.hasUrls():
             for url in mime.urls():
                 _url = url.url()
-                print("INSERT QURL:", _url)
                 _url = urllib.parse.urlparse(_url)
                 cursor = self.textCursor()
                 _qurl = _url.geturl()
-                print("INSERT REPARSED URL:", _qurl)
-                cursor.insertHtml("<a href='{0}'>{1}</a>".format(_qurl, html.escape(_qurl, quote=False)))
+                cursor.insertHtml("<a href='{0}'>{1}</a>&nbsp;".format(_qurl, html.escape(_qurl, quote=False)))
             return
 
         super(QTextEdit, self).insertFromMimeData(mime)
