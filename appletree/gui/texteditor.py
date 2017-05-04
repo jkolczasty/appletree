@@ -180,7 +180,6 @@ class QATTextDocument(Qt.QTextDocument):
             image = Qt.QPixmap()
             image.loadFromData(data)
             data.clear()
-            # self.editor.project.doc.putImage(self.docid, url, image)
             return image
         except Exception as e:
             self.log.error("Failed to retrive remote image: %s: %s", e.__class__.__name__, e)
@@ -244,35 +243,38 @@ class TabEditorText(Qt.QWidget):
         font.setPointSize(16)
         self.editor.setFont(font)
 
-        elements = Qt.QTreeWidget(self)
-        # elements.setMaximumWidth(200)
-        # elements.setFixedWidth(200)
-        # elements.setMinimumWidth(100)
-        elements.setBaseSize(100, 100)
-        elements.adjustSize()
-        # elements.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.MinimumExpanding)
+        self.elements = None
+        self.elementsroot = None
 
-        # elements.setFixedWidth(200)
-        elements.setHeaderHidden(True)
-        elementsroot = elements.invisibleRootItem()
-
-        elementstype = Qt.QTreeWidgetItem(elementsroot, [T("Attachements"), "attachements"])
-        elementstype.setIcon(0, getIcon("attachments"))
-        elementstype.setExpanded(True)
-
-        elementstype = Qt.QTreeWidgetItem(elementsroot, [T("Images"), "images"])
-        elementstype.setIcon(0, getIcon("attachments"))
-        elementstype.setExpanded(True)
-
-        self.elements = elements
-        self.elementsroot = elementsroot
+        # elements = Qt.QTreeWidget(self)
+        # # elements.setMaximumWidth(200)
+        # # elements.setFixedWidth(200)
+        # # elements.setMinimumWidth(100)
+        # elements.setBaseSize(100, 100)
+        # elements.adjustSize()
+        # # elements.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.MinimumExpanding)
+        #
+        # # elements.setFixedWidth(200)
+        # elements.setHeaderHidden(True)
+        # elementsroot = elements.invisibleRootItem()
+        #
+        # elementstype = Qt.QTreeWidgetItem(elementsroot, [T("Attachements"), "attachements"])
+        # elementstype.setIcon(0, getIcon("attachments"))
+        # elementstype.setExpanded(True)
+        #
+        # elementstype = Qt.QTreeWidgetItem(elementsroot, [T("Images"), "images"])
+        # elementstype.setIcon(0, getIcon("attachments"))
+        # elementstype.setExpanded(True)
+        #
+        # self.elements = elements
+        # self.elementsroot = elementsroot
 
         # self._addElement("attachements", "somefile")
 
         splitter.addWidget(self.editor)
-        splitter.addWidget(self.elements)
+        # splitter.addWidget(self.elements)
         splitter.setStretchFactor(0, 2)
-        splitter.setStretchFactor(1, 0)
+        # splitter.setStretchFactor(1, 0)
 
         # TODO: should accessibleName be used?
         self.setAccessibleName(docid)
@@ -285,14 +287,24 @@ class TabEditorText(Qt.QWidget):
 
     def destroy(self, *args):
         self.log.info("Destroy")
-        self.doc.clear()
-        del self.doc
-        del self.elementsroot
-        self.elements.destroy()
-        self.editor.destroy()
-        del self.elements
-        del self.editor
-        gc.collect()
+
+        if self.editor:
+            self.editor.close()
+            self.editor.destroy()
+            del self.editor
+            self.editor = None
+
+        if self.doc:
+            self.doc.clear()
+            del self.doc
+            self.doc = None
+
+        if self.elementsroot:
+            self.elementsroot = None
+        if self.elements:
+            self.elements.destroy()
+            del self.elements
+            self.elements = None
 
     def setModified(self, modified):
         self.doc.setModified(modified)

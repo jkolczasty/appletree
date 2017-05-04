@@ -32,17 +32,25 @@ from appletree.helpers import genuid
 import traceback
 
 META_KEYS = ('name', 'backend', 'sync')
-PROJECT_DIRS = ('documents', )
+PROJECT_DIRS = ('documents',)
 PROJECT_DIRS_MODE = 0o0700
+
+
 # PROJECT_DIRS_MODE = 0o0600
 
 
 class Project(object):
-    def __init__(self, projectid, name, docbackend, syncbackend):
+    def __init__(self, projectid, name, docbackend, syncbackend, path=None, active=None):
         self.name = name
         self.projectid = projectid
         self.doc = docbackend
         self.sync = syncbackend
+        self.active = active
+
+        if path:
+            self.path = path
+        else:
+            self.path = os.path.join(config.data_dir, "projects", projectid)
 
     def open(self):  # ???
         return True
@@ -64,11 +72,13 @@ class Projects(object):
         self.log = logging.getLogger("at.projects")
         self.projects = dict()
 
-    def meta(self, projectid):
+    def meta(self, projectid, path=None):
         if not projectid:
             return None
         try:
-            path = os.path.join(config.data_dir, "projects", projectid)
+            if not path:
+                path = os.path.join(config.data_dir, "projects", projectid)
+
             if not os.path.isdir(path):
                 self.log.warn("meta(): no folder: %s", path)
                 return None
@@ -90,8 +100,12 @@ class Projects(object):
             self.log.error("Failed to retrive project meta: %s: %s: %s", projectid, e.__class__.__name__, e)
             return None
 
-    def open(self, projectid):
-        meta = self.meta(projectid)
+    def open(self, projectid, path=None, active=None):
+        project = self.projects.get(projectid)
+        if project:
+            return project
+
+        meta = self.meta(projectid, path=path)
         if not meta:
             self.log.error("Failed to open project: no meta: %s", projectid)
             return None
@@ -104,7 +118,8 @@ class Projects(object):
         # syncbackend = getSyncBackend(meta.get('sync'))
         syncbackend = None
 
-        project = Project(projectid=projectid, name=meta['name'], docbackend=backend, syncbackend=syncbackend)
+        project = Project(projectid=projectid, name=meta['name'], docbackend=backend, syncbackend=syncbackend,
+                          path=path, active=active)
         self.projects[projectid] = project
 
         return project
@@ -113,10 +128,13 @@ class Projects(object):
         path = os.path.join(config.config_dir, "projects.conf")
         try:
             cfg = ConfigParser()
-            section = 'projects'
-            cfg.add_section(section)
-            projects = self.list()
-            cfg.set(section, 'projects', ",".join(projects))
+
+            for projectid, project in self.projects.items():
+                section = "project:" + projectid
+                cfg.add_section(section)
+                cfg.set(section, "path", project.path)
+                cfg.set(section, "active", "1" if project.active else "0")
+
             with open(path, 'w') as f:
                 cfg.write(f)
         except Exception as e:
@@ -129,11 +147,15 @@ class Projects(object):
             if not cfg.read(path):
                 return False
 
-            projects = [s.strip() for s in cfg.get('projects', 'projects').split(",")]
+            for section in cfg.sections():
+                if not section.startswith('project:'):
+                    continue
+                projectid = section[8:]
+                print("????", projectid)
 
-            for projectid in projects:
-                self.open(projectid)
-
+                path = cfg.get(section, "path", fallback=None)
+                active = cfg.get(section, "active", fallback=None) == '1'
+                self.open(projectid, path=path, active=active)
         except Exception as e:
             self.log.error("Config read failed: %s: %s", e.__class__.__name__, e)
 
@@ -174,3 +196,9 @@ class Projects(object):
             self.log.error("Failed to create project meta: %s: %s: %s", projectid, e.__class__.__name__, e)
             traceback.print_exc()
             return None
+
+    def items(self):
+        return self.projects.items()
+
+    def get(self, projectid):
+        return self.projects.get(projectid)

@@ -24,6 +24,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import logging
+from weakref import ref
 from appletree.gui.qt import Qt, QtCore
 from appletree.gui.mwtoolbar import MainWindowToolbar
 from appletree.project import Projects
@@ -31,6 +32,18 @@ from appletree.plugins.base import ATPlugins
 from appletree.gui.project import ProjectView, NewProjectDialog
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+
+
+class MenuProjectWrapper(object):
+    def __init__(self, win, projectid):
+        self.win = ref(win)
+        self.projectid = projectid
+
+    def __call__(self, *args, **kwargs):
+        win = self.win()
+        if not win:
+            return
+        win.on_menu_project(self.projectid)
 
 
 class AppleTreeMainWindow(Qt.QMainWindow):
@@ -48,6 +61,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.menubar = Qt.QMenuBar()
         self.toolbar = MainWindowToolbar(self)
 
+        self.menuprojects = self.menubar.addMenu("Projects")
         self.menuplugins = self.menubar.addMenu("Plugins")
 
         self.plugins = ATPlugins(self)
@@ -78,7 +92,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
         self.tabs = Qt.QTabWidget()
         self.tabs.setTabsClosable(True)
-        # tabs.tabCloseRequested.connect(self.on_tab_close_req)
+        self.tabs.tabCloseRequested.connect(self.on_tab_close_req)
         # tabs.currentChanged.connect(self.on_tab_current_changed)
 
         box.addWidget(self.toolbar)
@@ -90,10 +104,20 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.plugins.initialize()
         self.ready = True
         self.treeready = False
-        projectslist = self.projects.list()
 
-        for projectid in projectslist:
+        for projectid, project in self.projects.items():
+            self.projectAdd(projectid)
+            if not project.active:
+                continue
             self.projectOpen(projectid)
+
+    def projectAdd(self, projectid):
+        project = self.projects.open(projectid)
+        if not project:
+            return
+        action = Qt.QAction(project.name, self)
+        action.triggered.connect(MenuProjectWrapper(self, projectid))
+        self.menuprojects.addAction(action)
 
     def projectOpen(self, projectid):
         self.log.info("projectOpen(): %s", projectid)
@@ -106,11 +130,13 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         if project is None:
             return None
 
+        project.active = True
         projectv = ProjectView(self, project)
         projectv.loadDocumentsTree()
-        self.tabs.addTab(projectv, project.name)
+        idx = self.tabs.addTab(projectv, project.name)
         self.projectsViews[projectid] = projectv
         self.projects.save()
+        self.tabs.setCurrentIndex(idx)
         return True
 
     def projectCreate(self, name, docbackend, syncbackend, projectid=None):
@@ -147,6 +173,32 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
     def save(self, *args):
         pass
+
+    # signals/callbacks
+
+    # project close
+    def on_tab_close_req(self, index, ignoreChanges=False):
+        widget = self.tabs.widget(index)
+        projectid = widget.accessibleName()
+        if not projectid:
+            return
+        project = self.projects.get(projectid)
+        projectv = self.projectsViews.get(projectid)
+        if not project or not projectv:
+            return
+
+        projectv.close()
+        del projectv
+        widget.close()
+        project.close()
+
+        self.tabs.removeTab(index)
+        widget.destroy()
+        project.active = False
+        self.projects.save()
+
+    def on_menu_project(self, projectid):
+        self.projectOpen(projectid)
 
     def on_toolbar_insert_image(self, *args):
         projectid, projectv = self.getCurrentProject()

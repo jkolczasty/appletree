@@ -91,6 +91,15 @@ class ProjectView(Qt.QWidget):
         self.ready = True
         self.treeready = False
 
+    def close(self):
+        self.log.info("Close project")
+        super(ProjectView, self).close()
+        for editor in self.editors.values():
+            editor.close()
+            editor.destroy()
+
+        self.editors = {}
+
     def _processDocumentsTree(self, docid, docname, items, parent):
         self.addDocumentTree(docid, docname, parent)
 
