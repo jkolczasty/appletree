@@ -151,7 +151,6 @@ class Projects(object):
                 if not section.startswith('project:'):
                     continue
                 projectid = section[8:]
-                print("????", projectid)
 
                 path = cfg.get(section, "path", fallback=None)
                 active = cfg.get(section, "active", fallback=None) == '1'

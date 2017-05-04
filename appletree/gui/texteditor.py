@@ -133,11 +133,9 @@ class QTextEdit(Qt.QTextEdit):
         super(QTextEdit, self).__init__()
         # self.contextMenuEventSingal = Qt.pyqtSignal(object)
         flags = self.textInteractionFlags()
-        print(flags, dir(flags))
         flags = QtCore.Qt.TextInteractionFlags(flags)
         flags |= QtCore.Qt.LinksAccessibleByMouse
         flags |= QtCore.Qt.LinksAccessibleByKeyboard
-        print(flags, dir(flags))
         self.setTextInteractionFlags(flags)
         self.setAcceptRichText(True)
         self.setAutoFormatting(QTextEdit.AutoAll)
@@ -175,10 +173,11 @@ class QTextEdit(Qt.QTextEdit):
     def insertFromMimeData(self, mime):
         if mime.hasUrls():
             for url in mime.urls():
-                _url = url.toString()
+                _url = urllib.parse.urlparse(url.toString())
                 cursor = self.textCursor()
-                _qurl = urllib.parse.quote(_url, safe="://")
-                cursor.insertHtml("<a href='{0}'>{1}</a>".format(_qurl, html.escape(_url)))
+
+                _qurl = _url.geturl()
+                cursor.insertHtml("<a href='{0}'>{1}</a>".format(_qurl, html.escape(_qurl, quote=False)))
             return
 
         super(QTextEdit, self).insertFromMimeData(mime)
