@@ -411,6 +411,8 @@ class ProjectView(Qt.QWidget):
 
     def on_toolbar_insert_image(self, *args):
         docid, editor = self.getCurrentEditor()
+        if not docid or not editor:
+            return
 
         dialog = Qt.QFileDialog()
         dialog.setFileMode(Qt.QFileDialog.AnyFile)

@@ -40,6 +40,16 @@ class ScreenShotPlugin(ATPlugin):
              ])
 
     def on_toolbar_screenshot(self, *args):
+        try:
+            win = self.win()
+            if not win:
+                return
+            docid, editor = win.getCurrentEditor()
+            if not docid or not editor:
+                return
+        except:
+            pass
+
         if not self.config.get('screenshot_exec'):
             self.messageDialog(T("Screenshot Plugin"), T("Screenshot tools is not configured. Update preferences."))
             return
@@ -62,10 +72,6 @@ class ScreenShotPlugin(ATPlugin):
             return
 
         try:
-            win = self.win()
-            if not win:
-                return
-            docid, editor = win.getCurrentEditor()
             editor.insertImage(None, filename)
         except Exception as e:
             self.log.error("Exception: %s: %s", e.__class__.__name__, e)
