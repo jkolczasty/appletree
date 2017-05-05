@@ -27,10 +27,26 @@ import logging
 from weakref import ref
 from appletree.gui.qt import Qt, QtGui, QtCore
 from appletree.helpers import genuid, getIcon, T, messageDialog
-from appletree.gui.texteditor import TabEditorText
+from appletree.gui.tabtexteditor import TabEditorText
 from appletree.gui.treeview import QATTreeWidget
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+
+
+class CurrentEditorDelegation(object):
+    def __init__(self, win, name):
+        self.win = ref(win)
+        self.name = name
+
+    def __call__(self, *args, **kwargs):
+        win = self.win()
+        if not win:
+            return
+        docid, editor = win.getCurrentEditor()
+        if not editor or not hasattr(editor, self.name):
+            return
+        fn = getattr(editor, self.name)
+        return fn(*args, **kwargs)
 
 
 class ProjectView(Qt.QWidget):
@@ -48,9 +64,19 @@ class ProjectView(Qt.QWidget):
         box = Qt.QVBoxLayout()
         tree = QATTreeWidget(self)
         self.toolbar = Qt.QToolBar(self)
+
         self.fontselection = Qt.QFontComboBox(self.toolbar)
-        self.fontselection.currentFontChanged.connect(self.on_fontselection_change)
+        self.fontselection.currentFontChanged.connect(CurrentEditorDelegation(self, 'on_fontselection_change'))  # self.on_fontselection_change)
         self.toolbar.addWidget(self.fontselection)
+
+        self.fontsizeselection = Qt.QSpinBox(self.toolbar)
+        self.fontsizeselection.setMinimum(4)
+        self.fontsizeselection.setMaximum(32)
+        self.fontsizeselection.setValue(14)
+        self.fontsizeselection.valueChanged.connect(CurrentEditorDelegation(self, 'on_fontsizeselection_change'))
+
+        self.toolbar.addWidget(self.fontsizeselection)
+
         tabs = Qt.QTabWidget()
         tabs.setTabsClosable(True)
         tabs.tabCloseRequested.connect(self.on_tab_close_req)
@@ -411,12 +437,6 @@ class ProjectView(Qt.QWidget):
             self.treeready = True
             self.saveDocumentsTree()
 
-    def on_fontselection_change(self, font):
-        docid, editor = self.getCurrentEditor()
-        if not editor:
-            return
-
-        editor.on_fontselection_change(font)
     # on_ below are passed from mw to current project
 
     def on_toolbar_insert_image(self, *args):
