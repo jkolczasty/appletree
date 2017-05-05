@@ -185,7 +185,10 @@ class QTextEdit(Qt.QTextEdit):
                 s = s.replace(url, "<a href='{0}'>{1}</a>&nbsp;".format(_url, _url))
 
             cursor = self.textCursor()
+            font = self.currentFont()
+            self.setFont(font)
             cursor.insertHtml(s)
+            self.setCurrentFont(font)
             return
 
         if mime.hasUrls():
@@ -216,6 +219,7 @@ class QTextEdit(Qt.QTextEdit):
         font = self.currentFont()
         font.setStrikeOut(not font.strikeOut())
         self.setCurrentFont(font)
+        self.setFont(font)
 
 
 class QATTextDocument(Qt.QTextDocument):
