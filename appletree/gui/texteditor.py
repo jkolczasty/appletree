@@ -134,6 +134,7 @@ class QTextEdit(Qt.QTextEdit):
 
     def __init__(self, *args, **kwargs):
         super(QTextEdit, self).__init__()
+        # self.win = ref(kwargs.get('parent'))
         # self.contextMenuEventSingal = Qt.pyqtSignal(object)
         flags = self.textInteractionFlags()
         flags = QtCore.Qt.TextInteractionFlags(flags)
@@ -160,7 +161,7 @@ class QTextEdit(Qt.QTextEdit):
 
     def mouseReleaseEvent(self, event):
         if self.clickedAnchor and (event.button() & QtCore.Qt.LeftButton) and (
-            event.modifiers() & QtCore.Qt.ControlModifier):
+                    event.modifiers() & QtCore.Qt.ControlModifier):
             pos = event.pos()
             clickedAnchor = self.anchorAt(pos)
 
@@ -281,6 +282,7 @@ class TabEditorText(Qt.QWidget):
         h1.addWidget(splitter)
 
         self.editor = QTextEdit(parent=self)
+        self.editor.cursorPositionChanged.connect(self.on_cursor_possition_changed)
         self.doc = QATTextDocument(self, docid, parent=self.editor)
 
         docbody = self.project.doc.getDocumentBody(docid)
@@ -540,3 +542,14 @@ class TabEditorText(Qt.QWidget):
         cursor2.setPosition(fragment.position())
         cursor2.setPosition(fragment.position() + fragment.length(), Qt.QTextCursor.KeepAnchor)
         cursor2.setCharFormat(_format)
+
+    def on_fontselection_change(self, font):
+        self.editor.setCurrentFont(font)
+
+    def on_cursor_possition_changed(self):
+        win = self.win()
+        if not win:
+            return
+
+        font = self.editor.currentFont()
+        win.fontselection.setCurrentFont(font)

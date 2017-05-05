@@ -47,7 +47,10 @@ class ProjectView(Qt.QWidget):
         splitter = Qt.QSplitter()
         box = Qt.QVBoxLayout()
         tree = QATTreeWidget(self)
-
+        self.toolbar = Qt.QToolBar(self)
+        self.fontselection = Qt.QFontComboBox(self.toolbar)
+        self.fontselection.currentFontChanged.connect(self.on_fontselection_change)
+        self.toolbar.addWidget(self.fontselection)
         tabs = Qt.QTabWidget()
         tabs.setTabsClosable(True)
         tabs.tabCloseRequested.connect(self.on_tab_close_req)
@@ -67,6 +70,7 @@ class ProjectView(Qt.QWidget):
         tree.setColumnHidden(2, True)
 
         self.setLayout(box)
+        box.addWidget(self.toolbar)
         box.addWidget(splitter)
 
         tree.setHeaderHidden(True)
@@ -407,6 +411,12 @@ class ProjectView(Qt.QWidget):
             self.treeready = True
             self.saveDocumentsTree()
 
+    def on_fontselection_change(self, font):
+        docid, editor = self.getCurrentEditor()
+        if not editor:
+            return
+
+        editor.on_fontselection_change(font)
     # on_ below are passed from mw to current project
 
     def on_toolbar_insert_image(self, *args):
