@@ -458,7 +458,11 @@ class ProjectView(Qt.QWidget):
             editor.insertImage(uid, fn)
 
     def on_toolbar_test(self, *args):
-        pass
+        doci, editor = self.getCurrentEditor()
+        if not editor:
+            return
+
+        editor.test()
 
     def on_toolbar_document_add(self, *args):
         currentitem = self.tree.currentItem() or self.tree.invisibleRootItem()

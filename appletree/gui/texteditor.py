@@ -20,14 +20,15 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt, QtCore, QtGui, FontDB, loadQImageFix
+from appletree.gui.qt import Qt, QtCore, QtGui, QtWidgets, FontDB, loadQImageFix
 from appletree.helpers import getIcon, T, genuid, messageDialog
 import requests
 import urllib.parse
 import html
 import re
+from weakref import ref
 
-RE_URL = re.compile(r'(file|http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?')
+RE_URL = re.compile(r'((file|http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)')
 
 
 class ImageResizeDialog(Qt.QDialog):
@@ -131,7 +132,7 @@ class QTextEdit(Qt.QTextEdit):
 
     def __init__(self, *args, **kwargs):
         super(QTextEdit, self).__init__()
-        # self.win = ref(kwargs.get('parent'))
+        self.win = ref(kwargs.get('parent'))
         # self.contextMenuEventSingal = Qt.pyqtSignal(object)
         flags = self.textInteractionFlags()
         flags = QtCore.Qt.TextInteractionFlags(flags)
@@ -143,7 +144,7 @@ class QTextEdit(Qt.QTextEdit):
         self.addShortcut('CTRL+B', self.on_bold)
         self.addShortcut('CTRL+I', self.on_italic)
         self.addShortcut('CTRL+U', self.on_underline)
-        self.addShortcut('CTRL+-', self.on_strikeout)
+        self.addShortcut('CTRL+T', self.on_test)
 
     def addShortcut(self, shortcut, callback):
         action = Qt.QAction(self)
@@ -172,32 +173,81 @@ class QTextEdit(Qt.QTextEdit):
     def contextMenuEvent(self, event):
         self.contextMenuEventSingal.emit(event)
 
+    def insertHtml(self, s, cursor):
+        font = self.currentFont()
+        font.fromString('Droid Sans,20,-1,5,50,0,1,0,0,0')
+        cursor = Qt.QTextCursor(cursor)
+        _format = Qt.QTextCharFormat()
+        _format.setFont(font)
+        cursor.setCharFormat(_format)
+
+        cursor.insertHtml(s)
+        # cursor.insertText(s)
+
+    def insertLink(self, url, cursor=None, addSpace=True):
+        if not cursor:
+            cursor = self.textCursor()
+        cursor = Qt.QTextCursor(cursor)
+        _cformat = cursor.charFormat()
+        font = _cformat.font()
+        _format = Qt.QTextCharFormat()
+        _format.setFont(font)
+        _format.setUnderlineStyle(1)
+        _format.setForeground(QtCore.Qt.blue)
+        _format.setAnchor(True)
+        _format.setAnchorHref(url)
+
+        cursor.insertText(url, _format)
+        if addSpace:
+            _format = Qt.QTextCharFormat()
+            _format.setFont(font)
+            cursor.insertText(" ", _format)
+
+    def insertText(self, s, cursor=None):
+        if not cursor:
+            cursor = self.textCursor()
+        cursor = Qt.QTextCursor(cursor)
+        _cformat = cursor.charFormat()
+        font = _cformat.font()
+        _format = Qt.QTextCharFormat()
+        _format.setFont(font)
+        cursor.insertText(s, _format)
+
     def insertFromMimeData(self, mime):
         if mime.hasText():
             global RE_URL
             s = mime.text()
             # replace links
             s = html.escape(s, quote=False)
-            for item in RE_URL.finditer(s):
-                url = item.group(0)
-                _url = urllib.parse.urlparse(url)
-                _url = _url.geturl()
-                s = s.replace(url, "<a href='{0}'>{1}</a>&nbsp;".format(_url, _url))
+            sl = len(s)
+            index = 0
+            c = 0
+            while c < 1000:
+                m = RE_URL.search(s, index)
+                if not m:
+                    s2 = s[index:]
+                    if c and s2.startswith(" "):
+                        s2 = s2[1:]
+                    self.insertText(s2)
+                    break
 
-            cursor = self.textCursor()
-            font = self.currentFont()
-            self.setFont(font)
-            cursor.insertHtml(s)
-            self.setCurrentFont(font)
+                pos = m.start()
+                s2 = s[index:pos]
+                if c and s2.startswith(" "):
+                    s2 = s2[1:]
+                self.insertText(s2)
+                index2 = m.end()
+                self.insertLink(m.group(1))
+                c += 1
+                index = index2
             return
 
         if mime.hasUrls():
             for url in mime.urls():
                 _url = url.url()
                 _url = urllib.parse.urlparse(_url)
-                cursor = self.textCursor()
                 _qurl = _url.geturl()
-                cursor.insertHtml("<a href='{0}'>{1}</a>&nbsp;".format(_qurl, html.escape(_qurl, quote=False)))
+                self.insertLink(_qurl)
             return
 
         super(QTextEdit, self).insertFromMimeData(mime)
@@ -221,6 +271,8 @@ class QTextEdit(Qt.QTextEdit):
         self.setCurrentFont(font)
         self.setFont(font)
 
+    def on_test(self):
+        pass
 
 class QATTextDocument(Qt.QTextDocument):
     def __init__(self, editor, docid, *args, **kwargs):
