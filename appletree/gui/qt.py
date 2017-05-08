@@ -30,13 +30,13 @@ __QT = 4 if os.environ.get('USE_QT4') == '1' else 5
 
 if __QT == 5:
     try:
-        from PyQt5 import Qt, QtGui, QtCore, QtWidgets
+        from PyQt5 import Qt, QtGui, QtCore
     except:
         __QT = 4
 
 if __QT == 4:
     try:
-        from PyQt4 import Qt, QtGui, QtCore, QtWidgets
+        from PyQt4 import Qt, QtGui, QtCore
     except:
         print("Could not find PyQt5 or PyQt4.")
         sys.exit(1)

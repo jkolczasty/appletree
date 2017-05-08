@@ -20,8 +20,8 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt, QtCore, QtGui, QtWidgets, FontDB, loadQImageFix
-from appletree.helpers import getIcon, T, genuid, messageDialog
+from appletree.gui.qt import Qt, QtCore, QtGui, FontDB, loadQImageFix
+from appletree.helpers import T, messageDialog
 import requests
 import urllib.parse
 import html
