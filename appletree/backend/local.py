@@ -125,6 +125,8 @@ class BackendDocumentsLocal(BackendDocuments):
             _name = sha1(name.encode('utf-8')).hexdigest()
         else:
             _name = name
+        if _name.startswith('resources/images/'):
+            _name = _name.rsplit("/", 1)[-1]
 
         path = os.path.join(self.docdir, docid)
 
@@ -156,6 +158,8 @@ class BackendDocumentsLocal(BackendDocuments):
             _name = sha1(name.encode('utf-8')).hexdigest()
         else:
             _name = name
+        if _name.startswith('resources/images/'):
+            _name = _name.rsplit("/", 1)[-1]
 
         fn = os.path.join(self.docdir, docid, "resources", "images", _name)
 
@@ -172,7 +176,8 @@ class BackendDocumentsLocal(BackendDocuments):
     def clearImagesOld(self, docid, currentimages):
         path = os.path.join(self.docdir, docid, "resources", "images")
         for fn in os.listdir(path):
-            if fn not in currentimages:
+            url = "resources/images/" + fn
+            if url not in currentimages:
                 ffn = os.path.join(path, fn)
                 self.log.info("clearImagesOld(): %s", fn)
                 os.unlink(ffn)

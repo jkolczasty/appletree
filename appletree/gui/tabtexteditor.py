@@ -198,7 +198,10 @@ class TabEditorText(Qt.QWidget):
         pass
 
     def addImage(self, name, image=None, path=None):
-        url = name
+        if name.startswith('resources/images/'):
+            url = name
+        else:
+            url = "resources/images/" + name
 
         if not image:
             image = loadQImageFix(path)

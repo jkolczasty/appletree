@@ -454,7 +454,7 @@ class ProjectView(Qt.QWidget):
         filenames = dialog.selectedFiles()
 
         for fn in filenames:
-            uid = genuid()
+            uid = genuid() + ".png"
             editor.insertImage(uid, fn)
 
     def on_toolbar_test(self, *args):
