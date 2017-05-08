@@ -279,7 +279,6 @@ class QATTextDocument(Qt.QTextDocument):
 
     def loadResource(self, p_int, _qurl):
         url = _qurl.toString()
-
         image = self.editor.project.doc.getImage(self.docid, url)
         if image:
             self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
@@ -292,6 +291,27 @@ class QATTextDocument(Qt.QTextDocument):
             if image:
                 self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
             return image
+
+        if url.startswith('file://'):
+            try:
+                f = Qt.QFile(url)
+                if not f.open(Qt.QFile.ReadOnly):
+                    self.log.error("loadResource(): could not open file: %s", url)
+                    return None
+
+                data = f.readAll()
+                f.close()
+                del f
+
+                image = Qt.QPixmap()
+                image.loadFromData(data)
+                data.clear()
+                del data
+                if image:
+                    self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
+                return image
+            except Exception as e:
+                self.log.error("Failed to load image: %s: %s", e.__class__.__name__, e)
 
         return None
 

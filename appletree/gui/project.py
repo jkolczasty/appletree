@@ -246,7 +246,6 @@ class ProjectView(Qt.QWidget):
         docid = widget.accessibleName()
         self.log.info("on_tab_current_changed(): docid %s", docid)
         treeitem = self.treeFindDocument(docid)
-        self.log.info("on_tab_current_changed(): treeitem %s", treeitem)
         if treeitem:
             self.tree.setCurrentItem(treeitem)
 
