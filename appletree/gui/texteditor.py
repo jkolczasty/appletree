@@ -173,17 +173,6 @@ class QTextEdit(Qt.QTextEdit):
     def contextMenuEvent(self, event):
         self.contextMenuEventSingal.emit(event)
 
-    def insertHtml(self, s, cursor):
-        font = self.currentFont()
-        font.fromString('Droid Sans,20,-1,5,50,0,1,0,0,0')
-        cursor = Qt.QTextCursor(cursor)
-        _format = Qt.QTextCharFormat()
-        _format.setFont(font)
-        cursor.setCharFormat(_format)
-
-        cursor.insertHtml(s)
-        # cursor.insertText(s)
-
     def insertLink(self, url, cursor=None, addSpace=True):
         if not cursor:
             cursor = self.textCursor()
@@ -214,7 +203,7 @@ class QTextEdit(Qt.QTextEdit):
         cursor.insertText(s, _format)
 
     def insertFromMimeData(self, mime):
-        if mime.hasText():
+        if mime.hasText() and not mime.hasHtml():
             global RE_URL
             s = mime.text()
             # replace links
@@ -242,15 +231,7 @@ class QTextEdit(Qt.QTextEdit):
                 index = index2
             return
 
-        if mime.hasUrls():
-            for url in mime.urls():
-                _url = url.url()
-                _url = urllib.parse.urlparse(_url)
-                _qurl = _url.geturl()
-                self.insertLink(_qurl)
-            return
-
-        super(QTextEdit, self).insertFromMimeData(mime)
+        return super(QTextEdit, self).insertFromMimeData(mime)
 
     def on_bold(self):
         if self.fontWeight() == QtGui.QFont.Bold:
@@ -273,6 +254,7 @@ class QTextEdit(Qt.QTextEdit):
 
     def on_test(self):
         pass
+
 
 class QATTextDocument(Qt.QTextDocument):
     def __init__(self, editor, docid, *args, **kwargs):

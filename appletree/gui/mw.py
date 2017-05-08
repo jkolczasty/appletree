@@ -26,6 +26,7 @@ from __future__ import print_function
 import logging
 from weakref import ref
 from appletree.gui.qt import Qt, QtCore
+from appletree.helpers import getIcon
 from appletree.gui.mwtoolbar import MainWindowToolbar
 from appletree.project import Projects
 from appletree.plugins.base import ATPlugins
@@ -53,7 +54,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
     def __init__(self):
         super(AppleTreeMainWindow, self).__init__()
-
+        self.setWindowIcon(getIcon('app'))
         self.log = logging.getLogger("at")
         self.projects = Projects()
         self.setWindowTitle("AppleTree (Qt " + Qt.QT_VERSION_STR + ")")

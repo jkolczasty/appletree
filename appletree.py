@@ -22,6 +22,7 @@
 
 
 from appletree.gui.qt import Qt, initFonts
+from appletree.helpers import getIcon
 import logging
 from appletree.application import App
 import signal
@@ -31,6 +32,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     qtapp = Qt.QApplication(sys.argv)
     qtapp.setApplicationName("AppleTree")
+    qtapp.setWindowIcon(getIcon('app'))
     initFonts()
     app = App()
     app.show()

@@ -21,7 +21,7 @@
 #
 
 from appletree.gui.mw import AppleTreeMainWindow
-from appletree.backend import loadBackend, registerBackend
+from appletree.backend import registerBackend
 
 
 class App(object):
