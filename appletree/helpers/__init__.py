@@ -39,6 +39,11 @@ def getIcon(name):
     return Qt.QIcon(fn)
 
 
+def getIconImage(name):
+    fn = os.path.join("icons", name + ".png")
+    return Qt.QImage(fn)
+
+
 def messageDialog(title, message, details=None, OkCancel=False, icon=None):
     msg = Qt.QMessageBox()
     if icon:

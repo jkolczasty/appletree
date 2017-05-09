@@ -25,6 +25,7 @@ from appletree.helpers import getIcon, T
 import logging
 from weakref import ref
 from .texteditor import QTextEdit, QATTextDocument, ImageResizeDialog
+import urllib.parse
 
 
 class TabEditorText(Qt.QWidget):
@@ -52,7 +53,6 @@ class TabEditorText(Qt.QWidget):
         self.doc = QATTextDocument(self, docid, parent=self.editor)
 
         docbody = self.project.doc.getDocumentBody(docid)
-
         self.doc.setHtml(docbody)
         self.editor.setDocument(self.doc)
 
@@ -208,7 +208,7 @@ class TabEditorText(Qt.QWidget):
         return url
 
     def insertImage(self, path):
-        url = "file://" + path
+        url = "file://" + urllib.parse.quote(path)
         self.log.info("insertImage(): %s", url)
         url = self.addImage(url, path=path)
         if not url:

@@ -21,13 +21,13 @@
 #
 
 from appletree.gui.qt import Qt, QtCore, QtGui, FontDB, loadQImageFix
-from appletree.helpers import T, messageDialog
+from appletree.helpers import T, messageDialog, getIconImage
 import requests
-import urllib.parse
 import html
 import re
 import logging
 from weakref import ref
+import urllib.parse
 
 RE_URL = re.compile(r'((file|http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)')
 
@@ -281,6 +281,7 @@ class QATTextDocument(Qt.QTextDocument):
 
     def loadResource(self, p_int, _qurl):
         url = _qurl.toString()
+        self.editor.log.info("loadResource(): %s", url)
         image = self.editor.project.doc.getImage(self.docid, url)
         if image:
             self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
@@ -299,12 +300,14 @@ class QATTextDocument(Qt.QTextDocument):
 
             if scheme == 'file':
                 try:
-                    filename = urlsplit[1]
+                    filename = urllib.parse.unquote(urlsplit[1])
                     self.editor.log.info("Trying retrive local image: %s", filename)
                     f = Qt.QFile(filename)
                     if not f.open(Qt.QFile.ReadOnly):
                         self.log.error("loadResource(): could not open file: %s", url)
-                        return None
+                        image = getIconImage("noimage")
+                        self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
+                        return image
 
                     data = f.readAll()
                     f.close()
@@ -320,4 +323,6 @@ class QATTextDocument(Qt.QTextDocument):
                 except Exception as e:
                     self.log.error("Failed to load image: %s: %s", e.__class__.__name__, e)
 
-        return None
+        image = getIconImage("noimage")
+        self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
+        return image
