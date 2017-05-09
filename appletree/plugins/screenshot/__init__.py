@@ -72,7 +72,7 @@ class ScreenShotPlugin(ATPlugin):
             return
 
         try:
-            editor.insertImage(None, filename)
+            editor.insertImage(filename)
         except Exception as e:
             self.log.error("Exception: %s: %s", e.__class__.__name__, e)
             self.messageDialog(T("Screenshot Plugin"), T("Image Format Not Recognized"))

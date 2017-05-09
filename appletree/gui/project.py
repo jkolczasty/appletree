@@ -332,6 +332,9 @@ class ProjectView(Qt.QWidget):
         body = editor.getBody()
         # save images
         for res in images:
+            if res.startswith('data:image/'):
+                # ignore inline encoded images
+                continue
             url = Qt.QUrl()
             url.setUrl(res)
             resobj = editor.doc.resource(Qt.QTextDocument.ImageResource, url)

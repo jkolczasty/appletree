@@ -27,6 +27,7 @@ import html
 import re
 import logging
 from weakref import ref
+import base64
 
 RE_URL = re.compile(r'((file|http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)')
 
@@ -208,7 +209,6 @@ class QTextEdit(Qt.QTextEdit):
             s = mime.text()
             # replace links
             s = html.escape(s, quote=False)
-            sl = len(s)
             index = 0
             c = 0
             while c < 1000:
@@ -278,8 +278,16 @@ class QATTextDocument(Qt.QTextDocument):
         except Exception as e:
             self.log.error("Failed to retrive remote image: %s: %s", e.__class__.__name__, e)
 
+    def loadResourceMissing(self, _qurl):
+        image = getIconImage("noimage")
+        self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
+        return image
+
     def loadResource(self, p_int, _qurl):
         url = _qurl.toString()
+        if url.startswith('data:image/'):
+            return super(QATTextDocument, self).loadResource(p_int, _qurl)
+
         self.editor.log.info("loadResource(): %s", url)
         scheme = _qurl.scheme()
         image = self.editor.project.doc.getImage(self.docid, url)
@@ -304,9 +312,7 @@ class QATTextDocument(Qt.QTextDocument):
                     f = Qt.QFile(filename)
                     if not f.open(Qt.QFile.ReadOnly):
                         self.log.error("loadResource(): could not open file: %s", url)
-                        image = getIconImage("noimage")
-                        self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
-                        return image
+                        return self.loadResourceMissing(_qurl)
 
                     data = f.readAll()
                     f.close()
@@ -322,6 +328,8 @@ class QATTextDocument(Qt.QTextDocument):
                 except Exception as e:
                     self.log.error("Failed to load image: %s: %s", e.__class__.__name__, e)
 
-        image = getIconImage("noimage")
-        self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
-        return image
+        res = super(QATTextDocument, self).loadResource(p_int, _qurl)
+        if res:
+            return res
+
+        return self.loadResourceMissing(_qurl)

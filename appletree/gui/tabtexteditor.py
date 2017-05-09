@@ -21,7 +21,7 @@
 #
 
 from appletree.gui.qt import Qt, loadQImageFix
-from appletree.helpers import getIcon, T
+from appletree.helpers import getIcon, T, genuid
 import logging
 from weakref import ref
 from .texteditor import QTextEdit, QATTextDocument, ImageResizeDialog
@@ -197,12 +197,12 @@ class TabEditorText(Qt.QWidget):
         del image
         return url
 
-    def insertImage(self, path):
+    def insertImage(self, path, image=None):
         qurl = Qt.QUrl.fromLocalFile(path)
         url = qurl.toString()
         self.log.info("insertImage(): %s", url)
         del qurl
-        url = self.addImage(url, path=path)
+        url = self.addImage(url, image=image, path=path)
         if not url:
             return
 
@@ -237,9 +237,9 @@ class TabEditorText(Qt.QWidget):
         self.cursorpos = pos
         menu = self.editor.createStandardContextMenu()
 
+        menu.addSeparator()
         charformat = cursor.charFormat()
         if charformat.isImageFormat():
-            menu.addSeparator()
 
             # TODO: allow plugins to modify context menus
             action = Qt.QAction(T("Resize image"), menu)
@@ -248,6 +248,14 @@ class TabEditorText(Qt.QWidget):
 
             action = Qt.QAction(T("Copy image"), menu)
             action.triggered.connect(self.on_contextmenu_imagecopy)
+            menu.addAction(action)
+
+        clipboard = Qt.QApplication.clipboard()
+        image = clipboard.image()
+        if image and not image.isNull():
+            del image
+            action = Qt.QAction(T("Paste image"), menu)
+            action.triggered.connect(self.on_contextmenu_imagepaste)
             menu.addAction(action)
 
         menu.exec_(event.globalPos())
@@ -309,17 +317,34 @@ class TabEditorText(Qt.QWidget):
             return
 
         _format = charformat.toImageFormat()
-        w, h = _format.width(), _format.height()
-
+        image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(_format.name()))
+        if not image:
+            return
+        w, h = image.width(), image.height()
         if not w or not h:
-            image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(_format.name()))
-            if not image:
-                return
-            w, h = image.width(), image.height()
-            if not w or not h:
-                return
+            return
         clipboard = Qt.QApplication.clipboard()
         clipboard.setImage(image.toImage())
+
+    def on_contextmenu_imagepaste(self, *args):
+        self.log.info("imagepaste")
+        cursor = self.editor.cursorForPosition(self.cursorpos)
+        if not cursor:
+            return
+
+        clipboard = Qt.QApplication.clipboard()
+        image = clipboard.pixmap()
+        if not image:
+            self.log.info("imagepaste(): no image in clipboard")
+            return
+
+        # if image.isNull():
+        #     self.log.info("imagepaste(): no image in clipboard/2")
+        #     # NOTE: should it be deleted?
+        #     del image
+        #     return
+
+        self.insertImage(genuid(), image=image)
 
     def on_fontselection_change(self, font):
         if self.ignorechanges:
