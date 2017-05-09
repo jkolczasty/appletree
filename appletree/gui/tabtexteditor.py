@@ -52,13 +52,6 @@ class TabEditorText(Qt.QWidget):
         self.doc = QATTextDocument(self, docid, parent=self.editor)
 
         docbody = self.project.doc.getDocumentBody(docid)
-        images = self.project.doc.getImages(docid)
-
-        for img in images:
-            image = self.project.doc.getImage(docid, img)
-            if image:
-                self.log.info("document(): add image: %s: %s", docid, img)
-                self.addImage(img, image)
 
         self.doc.setHtml(docbody)
         self.editor.setDocument(self.doc)

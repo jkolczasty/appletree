@@ -127,9 +127,9 @@ class BackendDocumentsLocal(BackendDocuments):
 
     def getImage(self, docid, name):
         localname = resourceNameToLocal(name, ext='.png')
-
         path = self.localImageNamePath(docid, localname)
-        self.log.info("backend:getImage(): %s: %s: %s", docid, localname, path)
+
+        self.log.info("backend:getImage(): %s: %s: %s", docid, name, path)
 
         try:
             f = Qt.QFile(path)
