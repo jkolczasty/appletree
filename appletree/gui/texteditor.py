@@ -27,7 +27,6 @@ import html
 import re
 import logging
 from weakref import ref
-import urllib.parse
 
 RE_URL = re.compile(r'((file|http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)')
 
@@ -282,13 +281,12 @@ class QATTextDocument(Qt.QTextDocument):
     def loadResource(self, p_int, _qurl):
         url = _qurl.toString()
         self.editor.log.info("loadResource(): %s", url)
+        scheme = _qurl.scheme()
         image = self.editor.project.doc.getImage(self.docid, url)
         if image:
             self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
             return image
 
-        urlsplit = url.split("://", 1)
-        scheme = urlsplit[0] if len(urlsplit) > 0 else None
         if scheme:
             if scheme in ('http', 'https'):
                 self.editor.log.info("Trying retrive remote image: %s", url)
@@ -300,7 +298,8 @@ class QATTextDocument(Qt.QTextDocument):
 
             if scheme == 'file':
                 try:
-                    filename = urllib.parse.unquote(urlsplit[1])
+
+                    filename = Qt.QDir.toNativeSeparators(_qurl.toLocalFile())
                     self.editor.log.info("Trying retrive local image: %s", filename)
                     f = Qt.QFile(filename)
                     if not f.open(Qt.QFile.ReadOnly):
