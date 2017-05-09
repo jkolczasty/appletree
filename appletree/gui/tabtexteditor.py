@@ -181,13 +181,14 @@ class TabEditorText(Qt.QWidget):
                 if charformat.isImageFormat():
                     imageformat = charformat.toImageFormat()
                     name = imageformat.name()
-                    if name.startswith('http://') or name.startswith('https://'):
+                    scheme = name.split("://", 1)[0]
+                    if scheme and scheme in ('http', 'https', 'file'):
                         # change image name to local one (e.g. image loaded/pasted from url)
-                        image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(name))
-                        newname = sha1(name.encode('utf-8')).hexdigest()
-                        self.doc.addResource(Qt.QTextDocument.ImageResource, Qt.QUrl(newname), image)
-                        imageformat.setName(newname)
-                        images.append(newname)
+                        # image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(name))
+                        # newname = "resources/images/" + sha1(name.encode('utf-8')).hexdigest() + ".png"
+                        # self.doc.addResource(Qt.QTextDocument.ImageResource, Qt.QUrl(newname), image)
+                        # imageformat.setName(newname)
+                        images.append(name)
                     else:
                         images.append(name)
 
@@ -197,18 +198,13 @@ class TabEditorText(Qt.QWidget):
     def loadImageFromFile(self, path):
         pass
 
-    def addImage(self, name, image=None, path=None):
-        if name.startswith('resources/images/'):
-            url = name
-        else:
-            url = "resources/images/" + name
-
+    def addImage(self, url, image=None, path=None):
         if not image:
             image = loadQImageFix(path)
             if not image:
                 return
 
-        self.log.info("addImage(): %s: %s: %s", name, url, path)
+        self.log.info("addImage(): %s: %s", path, url)
 
         qurl = Qt.QUrl()
         qurl.setUrl(url)
@@ -217,12 +213,10 @@ class TabEditorText(Qt.QWidget):
         del image
         return url
 
-    def insertImage(self, name, path):
-        if name is None:
-            name = genuid()
-
-        self.log.info("insertImage(): %s: %s", name, path)
-        url = self.addImage(name, path=path)
+    def insertImage(self, path):
+        url = "file://" + path
+        self.log.info("insertImage(): %s", url)
+        self.addImage(url, path)
 
         image = Qt.QTextImageFormat()
         image.setName(url)
@@ -262,6 +256,10 @@ class TabEditorText(Qt.QWidget):
             # TODO: allow plugins to modify context menus
             action = Qt.QAction(T("Resize image"), menu)
             action.triggered.connect(self.on_contextmenu_imageresize)
+            menu.addAction(action)
+
+            action = Qt.QAction(T("Copy image"), menu)
+            action.triggered.connect(self.on_contextmenu_imagecopy)
             menu.addAction(action)
 
         menu.exec_(event.globalPos())
@@ -312,6 +310,28 @@ class TabEditorText(Qt.QWidget):
         cursor2.setPosition(fragment.position())
         cursor2.setPosition(fragment.position() + fragment.length(), Qt.QTextCursor.KeepAnchor)
         cursor2.setCharFormat(_format)
+
+    def on_contextmenu_imagecopy(self, *args):
+        cursor = self.editor.cursorForPosition(self.cursorpos)
+        if not cursor:
+            return
+
+        charformat = cursor.charFormat()
+        if not charformat or not charformat.isImageFormat():
+            return
+
+        _format = charformat.toImageFormat()
+        w, h = _format.width(), _format.height()
+
+        if not w or not h:
+            image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(_format.name()))
+            if not image:
+                return
+            w, h = image.width(), image.height()
+            if not w or not h:
+                return
+        clipboard = Qt.QApplication.clipboard()
+        clipboard.setImage(image.toImage())
 
     def on_fontselection_change(self, font):
         if self.ignorechanges:

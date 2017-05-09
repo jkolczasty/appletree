@@ -328,16 +328,20 @@ class ProjectView(Qt.QWidget):
 
         # first getimages, couse this method can change body settings
         images = editor.getImages()
+        imageslocal = []
         body = editor.getBody()
         # save images
         for res in images:
             url = Qt.QUrl()
             url.setUrl(res)
             resobj = editor.doc.resource(Qt.QTextDocument.ImageResource, url)
-            self.project.doc.putImage(docid, res, resobj)
+
+            localname = self.project.doc.putImage(docid, res, resobj)
+            if localname:
+                imageslocal.append(localname)
 
         self.project.doc.putDocumentBody(docid, body)
-        self.project.doc.clearImagesOld(docid, images)
+        self.project.doc.clearImagesOld(docid, imageslocal)
         editor.setModified(False)
 
     def _cloneDocuments(self, srcuid, srcname, items, parent, srcprojectv):
@@ -453,8 +457,7 @@ class ProjectView(Qt.QWidget):
         filenames = dialog.selectedFiles()
 
         for fn in filenames:
-            uid = genuid() + ".png"
-            editor.insertImage(uid, fn)
+            editor.insertImage(fn)
 
     def on_toolbar_test(self, *args):
         doci, editor = self.getCurrentEditor()

@@ -26,6 +26,7 @@ import requests
 import urllib.parse
 import html
 import re
+import logging
 from weakref import ref
 
 RE_URL = re.compile(r'((file|http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?)')
@@ -259,6 +260,7 @@ class QTextEdit(Qt.QTextEdit):
 class QATTextDocument(Qt.QTextDocument):
     def __init__(self, editor, docid, *args, **kwargs):
         super(QATTextDocument, self).__init__(*args, **kwargs)
+        self.log = logging.getLogger("at.document." + docid)
         self.editor = editor
         self.docid = docid
 
@@ -284,34 +286,38 @@ class QATTextDocument(Qt.QTextDocument):
             self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
             return image
 
-        if url.startswith('http://') or url.startswith('https://'):
-            self.editor.log.info("Trying retrive remote image: %s", url)
-            # remote image get it from network
-            image = self.loadResourceRemote(url)
-            if image:
-                self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
-            return image
-
-        if url.startswith('file://'):
-            try:
-                f = Qt.QFile(url)
-                if not f.open(Qt.QFile.ReadOnly):
-                    self.log.error("loadResource(): could not open file: %s", url)
-                    return None
-
-                data = f.readAll()
-                f.close()
-                del f
-
-                image = Qt.QPixmap()
-                image.loadFromData(data)
-                data.clear()
-                del data
+        urlsplit = url.split("://", 1)
+        scheme = urlsplit[0] if len(urlsplit) > 0 else None
+        if scheme:
+            if scheme in ('http', 'https'):
+                self.editor.log.info("Trying retrive remote image: %s", url)
+                # remote image get it from network
+                image = self.loadResourceRemote(url)
                 if image:
                     self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
                 return image
-            except Exception as e:
-                self.log.error("Failed to load image: %s: %s", e.__class__.__name__, e)
+
+            if scheme == 'file':
+                try:
+                    filename = urlsplit[1]
+                    self.editor.log.info("Trying retrive local image: %s", filename)
+                    f = Qt.QFile(filename)
+                    if not f.open(Qt.QFile.ReadOnly):
+                        self.log.error("loadResource(): could not open file: %s", url)
+                        return None
+
+                    data = f.readAll()
+                    f.close()
+                    del f
+
+                    image = Qt.QPixmap()
+                    image.loadFromData(data)
+                    data.clear()
+                    del data
+                    if image:
+                        self.editor.doc.addResource(Qt.QTextDocument.ImageResource, _qurl, image)
+                    return image
+                except Exception as e:
+                    self.log.error("Failed to load image: %s: %s", e.__class__.__name__, e)
 
         return None
-

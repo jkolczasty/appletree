@@ -26,6 +26,8 @@ from __future__ import print_function
 # __author__ = 'Jakub Kolasa <jakub@arker.pl'>
 
 import logging
+from hashlib import sha1
+import os
 
 
 class BackendDocuments(object):
@@ -35,3 +37,18 @@ class BackendDocuments(object):
     def __init__(self, projectid):
         self.log = logging.getLogger("at.backend")
         self.projectid = projectid
+
+
+def resourceNameToLocal(name, ext=""):
+    scheme = name.split("://")[0]
+    if scheme and scheme in ('http', 'https', 'file'):
+        _name = sha1(name.encode('utf-8')).hexdigest() + ext
+    else:
+        _name = name.rsplit("/", 1)[-1]
+        _name = _name.replace(os.sep, "_").replace("..", "__")
+
+    return _name
+
+
+def resourceImageLocalUrl(projectid, docid, name):
+    return '{0}/documents/{1}/resources/images/{2}'.format(projectid, docid, name)

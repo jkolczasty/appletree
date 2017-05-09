@@ -20,7 +20,7 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from .base import BackendDocuments
+from .base import BackendDocuments, resourceNameToLocal
 import os.path
 from codecs import encode, decode
 import json
@@ -36,7 +36,9 @@ class BackendDocumentsLocal(BackendDocuments):
 
     def __init__(self, projectid):
         super(BackendDocumentsLocal, self).__init__(projectid)
-        self.docdir = os.path.join(config.data_dir, "projects", projectid, "documents")
+        # TODO: allow to switch between workspaces? Nah.
+        self.workdir = os.path.join(config.data_dir)
+        self.docdir = os.path.join(self.workdir, "projects", projectid, "documents")
 
     def getDocumentsTree(self):
         path = os.path.join(self.docdir, "applenote.doctree")
@@ -120,23 +122,19 @@ class BackendDocumentsLocal(BackendDocuments):
         except Exception as e:
             self.log.error("removeDocument(): exception: %s: %s: %s", path, e.__class__.__name__, e)
 
+    def localImageNamePath(self, docid, name):
+        return os.path.join(self.docdir, docid, 'resources', 'images', name)
+
     def getImage(self, docid, name):
-        if name.startswith('http://') or name.startswith('https://'):
-            _name = sha1(name.encode('utf-8')).hexdigest()
-        else:
-            _name = name
-        if _name.startswith('resources/images/'):
-            _name = _name.rsplit("/", 1)[-1]
+        localname = resourceNameToLocal(name, ext='.png')
 
-        path = os.path.join(self.docdir, docid)
-
-        fn = os.path.join(path, "resources", "images", _name)
-        self.log.info("backend:getImage(): %s: %s: %s", docid, _name, fn)
+        path = self.localImageNamePath(docid, localname)
+        self.log.info("backend:getImage(): %s: %s: %s", docid, localname, path)
 
         try:
-            f = Qt.QFile(fn)
+            f = Qt.QFile(path)
             if not f.open(Qt.QFile.ReadOnly):
-                self.log.error("getImage(): could not open file: %s", fn)
+                self.log.error("getImage(): could not open file: %s", path)
                 return None
 
             data = f.readAll()
@@ -149,35 +147,29 @@ class BackendDocumentsLocal(BackendDocuments):
             del data
             return image
         except Exception as e:
-            self.log.error("getImage(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+            self.log.error("getImage(): exception: %s: %s: %s", path, e.__class__.__name__, e)
 
         return None
 
     def putImage(self, docid, name, image):
-        if name.startswith('http://') or name.startswith('https://'):
-            _name = sha1(name.encode('utf-8')).hexdigest()
-        else:
-            _name = name
-        if _name.startswith('resources/images/'):
-            _name = _name.rsplit("/", 1)[-1]
+        localname = resourceNameToLocal(name, ext='.png')
+        path = self.localImageNamePath(docid, localname)
 
-        fn = os.path.join(self.docdir, docid, "resources", "images", _name)
-
-        self.log.info("backend:putImage(): %s: %s: %s", docid, _name, fn)
+        self.log.info("backend:putImage(): %s: %s: %s", docid, name, path)
         try:
             # TODO: support indexed colors formats like GIF?
-            image.save(fn, "PNG")
-            return True
+            image.save(path, "PNG")
+            return localname
         except Exception as e:
-            self.log.error("putImage(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+            self.log.error("putImage(): exception: %s: %s: %s", path, e.__class__.__name__, e)
 
         return None
 
     def clearImagesOld(self, docid, currentimages):
         path = os.path.join(self.docdir, docid, "resources", "images")
+        self.log.debug("Current images: %s", ", ".join(currentimages))
         for fn in os.listdir(path):
-            url = "resources/images/" + fn
-            if url not in currentimages:
+            if fn not in currentimages:
                 ffn = os.path.join(path, fn)
                 self.log.info("clearImagesOld(): %s", fn)
                 os.unlink(ffn)
