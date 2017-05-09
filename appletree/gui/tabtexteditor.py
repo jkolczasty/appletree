@@ -20,11 +20,10 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt, QtCore, QtGui, FontDB, loadQImageFix
-from appletree.helpers import getIcon, T, genuid, messageDialog
+from appletree.gui.qt import Qt, loadQImageFix
+from appletree.helpers import getIcon, T
 import logging
 from weakref import ref
-from hashlib import sha1
 from .texteditor import QTextEdit, QATTextDocument, ImageResizeDialog
 
 
@@ -200,6 +199,8 @@ class TabEditorText(Qt.QWidget):
 
     def addImage(self, url, image=None, path=None):
         if not image:
+            if not path:
+                return
             image = loadQImageFix(path)
             if not image:
                 return
@@ -216,7 +217,9 @@ class TabEditorText(Qt.QWidget):
     def insertImage(self, path):
         url = "file://" + path
         self.log.info("insertImage(): %s", url)
-        self.addImage(url, path)
+        url = self.addImage(url, path=path)
+        if not url:
+            return
 
         image = Qt.QTextImageFormat()
         image.setName(url)
