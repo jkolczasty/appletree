@@ -20,7 +20,7 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt, loadQImageFix
+from appletree.gui.qt import Qt, QtCore, loadQImageFix
 from appletree.helpers import getIcon, T, genuid
 import logging
 from weakref import ref
@@ -180,38 +180,39 @@ class TabEditorText(Qt.QWidget):
     def loadImageFromFile(self, path):
         pass
 
-    def addImage(self, url, image=None, path=None):
+    def insertImage(self, path, image=None):
+        qurl = Qt.QUrl.fromLocalFile(path)
+        url = qurl.toString()
+        self.log.info("insertImage(): %s: %s", path, url)
+
         if not image:
-            if not path:
-                return
             image = loadQImageFix(path)
             if not image:
                 return
 
-        self.log.info("addImage(): %s: %s", path, url)
-
-        qurl = Qt.QUrl()
-        qurl.setUrl(url)
-        self.doc.addResource(Qt.QTextDocument.ImageResource, qurl, image)
-        del qurl
+        qbaimage = Qt.QByteArray()
+        qb = Qt.QBuffer(qbaimage)
+        qb.open(Qt.QIODevice.WriteOnly)
+        image.save(qb, 'PNG')
         del image
-        return url
+        qb.close()
 
-    def insertImage(self, path, image=None):
-        qurl = Qt.QUrl.fromLocalFile(path)
-        url = qurl.toString()
-        self.log.info("insertImage(): %s", url)
-        del qurl
-        url = self.addImage(url, image=image, path=path)
-        if not url:
-            return
+        data = Qt.QByteArray()
+        data.append(b'data:image/png;base64,')
+        data.append(qbaimage.toBase64())
+        qbaimage.clear()
+        del qbaimage
 
-        image = Qt.QTextImageFormat()
-        image.setName(url)
+        strdata = str(data, 'ascii')
+        data.clear()
+        del data
+
+        imagef = Qt.QTextImageFormat()
+        imagef.setName(strdata)
 
         cursor = self.editor.textCursor()
-        cursor.insertImage(image)
-        del image
+        cursor.insertImage(imagef)
+        del imagef
 
     def on_text_changed(self, *args):
         modified = self.doc.isModified()
@@ -240,7 +241,6 @@ class TabEditorText(Qt.QWidget):
         menu.addSeparator()
         charformat = cursor.charFormat()
         if charformat.isImageFormat():
-
             # TODO: allow plugins to modify context menus
             action = Qt.QAction(T("Resize image"), menu)
             action.triggered.connect(self.on_contextmenu_imageresize)
