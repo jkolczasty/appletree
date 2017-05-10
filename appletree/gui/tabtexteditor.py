@@ -20,10 +20,11 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import QTVERSION, Qt, loadQImageFix
-from appletree.helpers import getIcon, T, genuid, messageDialog
 import logging
 from weakref import ref
+import os
+from appletree.gui.qt import QTVERSION, Qt, loadQImageFix
+from appletree.helpers import getIcon, T, genuid, messageDialog
 from .texteditor import QTextEdit, QATTextDocument, ImageResizeDialog
 
 
@@ -216,7 +217,7 @@ class TabEditorText(Qt.QWidget):
 
     def exportToPdf(self):
         result = Qt.QFileDialog.getSaveFileName(self, "Export document to pdf", "", "PDF document (*.pdf)")
-        if Qt.PYQT_VERSION == 4:
+        if QTVERSION == 4:
             filename = result
         else:
             filename, selectedfilter = result
@@ -224,6 +225,14 @@ class TabEditorText(Qt.QWidget):
         if not filename:
             return
         
+        try:
+            if os.path.isfile(filename):
+                os.unlink(filename)
+        except Exception as e:
+            self.log.error("exportToPdf(): failed to unlink destination file: %s: %s", e.__class__.__name__, e)
+            messageDialog("PDF Export", "Failed to export as pdf.")
+            return
+
         self.log.info("Export to PDF: %s", filename)
         printer = Qt.QPrinter(Qt.QPrinter.PrinterResolution)
         printer.setOutputFormat(Qt.QPrinter.PdfFormat)
@@ -234,7 +243,7 @@ class TabEditorText(Qt.QWidget):
         printer.setFontEmbeddingEnabled(True)
         printer.setDocName(self.docname)
         self.doc.print(printer)
-        messageDialog("PDF Export", "PDF saved as: " + filename)
+        messageDialog("PDF Export", "PDF saved as: " + Qt.QDir.toNativeSeparators(filename))
         del printer
 
     def on_text_changed(self, *args):
