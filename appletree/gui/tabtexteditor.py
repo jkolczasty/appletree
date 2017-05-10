@@ -224,7 +224,7 @@ class TabEditorText(Qt.QWidget):
 
         if not filename:
             return
-        
+
         try:
             if os.path.isfile(filename):
                 os.unlink(filename)
@@ -389,11 +389,10 @@ class TabEditorText(Qt.QWidget):
     def on_fontsizeselection_change(self, size):
         if self.ignorechanges:
             return
-
-        cursor = self.editor.textCursor()
-        _format = cursor.charFormat()
+        
+        _format = Qt.QTextCharFormat()
         _format.setFontPointSize(size)
-        cursor.setCharFormat(_format)
+        self.editor.mergeCurrentCharFormat(_format)
         self.editor.setFontPointSize(size)
 
     def on_cursor_possition_changed(self):
