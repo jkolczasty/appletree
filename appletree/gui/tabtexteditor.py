@@ -23,7 +23,7 @@
 import logging
 from weakref import ref
 import os
-from appletree.gui.qt import QTVERSION, Qt, loadQImageFix
+from appletree.gui.qt import QTVERSION, Qt, QtCore, loadQImageFix
 from appletree.helpers import getIcon, T, genuid, messageDialog
 from .texteditor import QTextEdit, QATTextDocument, ImageResizeDialog
 
@@ -215,15 +215,22 @@ class TabEditorText(Qt.QWidget):
         cursor.insertImage(imagef)
         del imagef
 
-    def insertElement(self, name):
+    def on_toolbar_editor_action(self, name):
         if name == 'hr':
-            #self.editor.T
-            # cursor = self.editor.textCursor()
-            # f = Qt.QTextBlockFormat()
-            #f.setBackground()
-            # f.setLineHeight(3)
             self.log.info("Insert hr")
-            self.editor.insertHtml("<hr/>")
+            self.editor.insertHtml("<hr></hr>")
+            return
+        if name == 'format-justify-center':
+            self.editor.setAlignment(QtCore.Qt.AlignCenter)
+            return
+
+        if name == 'format-justify-right':
+            self.editor.setAlignment(QtCore.Qt.AlignRight)
+            return
+
+        if name == 'format-justify-left':
+            self.editor.setAlignment(QtCore.Qt.AlignLeft)
+            return
 
     def exportToPdf(self):
         result = Qt.QFileDialog.getSaveFileName(self, "Export document to pdf", "", "PDF document (*.pdf)")

@@ -85,7 +85,6 @@ class ProjectView(Qt.QWidget):
         tree.setAutoScroll(True)
 
         root = tree.invisibleRootItem()
-        # self.connect(tree, Qt.SIGNAL("itemSelectionChanged(QTreeWidgetItem*, int)"), self.on_tree_clicked)
         tree.itemSelectionChanged.connect(self.on_tree_item_selection)
         tree.itemChanged.connect(self.on_tree_item_changed)
 
@@ -114,6 +113,14 @@ class ProjectView(Qt.QWidget):
         self.fontsizeselection.valueChanged.connect(CurrentEditorDelegation(self, 'on_fontsizeselection_change'))
 
         self.toolbar.addWidget(self.fontsizeselection)
+        self.toolbar.addButton("hr", getIcon("document-add"),
+                               CurrentEditorDelegation(self, 'hr', self.on_toolbar_editor_action))
+        self.toolbar.addButton("format-justify-left", Qt.QIcon.fromTheme('format-justify-left-symbolic'),
+                               CurrentEditorDelegation(self, 'format-justify-left', self.on_toolbar_editor_action))
+        self.toolbar.addButton("format-justify-center", Qt.QIcon.fromTheme('format-justify-center-symbolic'),
+                               CurrentEditorDelegation(self, 'format-justify-center', self.on_toolbar_editor_action))
+        self.toolbar.addButton("format-justify-right", Qt.QIcon.fromTheme('format-justify-right-symbolic'),
+                               CurrentEditorDelegation(self, 'format-justify-right', self.on_toolbar_editor_action))
         win = self.win()
         if not win:
             return
@@ -487,6 +494,9 @@ class ProjectView(Qt.QWidget):
 
     def on_toolbar_save(self):
         self.save()
+
+    def on_toolbar_editor_action(self, name, editor, *args):
+        editor.on_toolbar_editor_action(name)
 
 
 class NewProjectDialog(Qt.QDialog):
