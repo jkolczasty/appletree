@@ -26,15 +26,17 @@ import os
 import traceback
 import sys
 
-__QT = 4 if os.environ.get('USE_QT4') == '1' else 5
+QTVERSION = 4 if os.environ.get('USE_QT4') == '1' else 5
 
-if __QT == 5:
+if QTVERSION == 5:
+    # noinspection PyBroadException
     try:
         from PyQt5 import Qt, QtGui, QtCore
     except:
-        __QT = 4
+        QTVERSION = 4
 
-if __QT == 4:
+if QTVERSION == 4:
+    # noinspection PyBroadException
     try:
         from PyQt4 import Qt, QtGui, QtCore
     except:

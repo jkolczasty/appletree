@@ -20,7 +20,7 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt, QtCore, loadQImageFix
+from appletree.gui.qt import QTVERSION, Qt, loadQImageFix
 from appletree.helpers import getIcon, T, genuid, messageDialog
 import logging
 from weakref import ref
@@ -215,11 +215,17 @@ class TabEditorText(Qt.QWidget):
         del imagef
 
     def exportToPdf(self):
-        filename, selectedfilter = Qt.QFileDialog.getSaveFileName(self, "Export document to pdf", "", "PDF document (*.pdf)")
+        result = Qt.QFileDialog.getSaveFileName(self, "Export document to pdf", "", "PDF document (*.pdf)")
+        if Qt.PYQT_VERSION == 4:
+            filename = result
+        else:
+            filename, selectedfilter = result
+
         if not filename:
             return
+        
         self.log.info("Export to PDF: %s", filename)
-        printer = Qt.QPrinter(Qt.QPrinter.HighResolution)
+        printer = Qt.QPrinter(Qt.QPrinter.PrinterResolution)
         printer.setOutputFormat(Qt.QPrinter.PdfFormat)
         printer.setPaperSize(Qt.QPrinter.A4)
         printer.setOutputFileName(filename)
