@@ -21,7 +21,7 @@
 #
 
 from appletree.gui.qt import Qt, QtCore, loadQImageFix
-from appletree.helpers import getIcon, T, genuid
+from appletree.helpers import getIcon, T, genuid, messageDialog
 import logging
 from weakref import ref
 from .texteditor import QTextEdit, QATTextDocument, ImageResizeDialog
@@ -213,6 +213,23 @@ class TabEditorText(Qt.QWidget):
         cursor = self.editor.textCursor()
         cursor.insertImage(imagef)
         del imagef
+
+    def exportToPdf(self):
+        filename, selectedfilter = Qt.QFileDialog.getSaveFileName(self, "Export document to pdf", "", "PDF document (*.pdf)")
+        if not filename:
+            return
+        self.log.info("Export to PDF: %s", filename)
+        printer = Qt.QPrinter(Qt.QPrinter.HighResolution)
+        printer.setOutputFormat(Qt.QPrinter.PdfFormat)
+        printer.setPaperSize(Qt.QPrinter.A4)
+        printer.setOutputFileName(filename)
+        printer.setCreator("AppleTree")
+        printer.setPrintProgram("AppleTree")
+        printer.setFontEmbeddingEnabled(True)
+        printer.setDocName(self.docname)
+        self.doc.print(printer)
+        messageDialog("PDF Export", "PDF saved as: " + filename)
+        del printer
 
     def on_text_changed(self, *args):
         modified = self.doc.isModified()

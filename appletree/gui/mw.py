@@ -84,6 +84,8 @@ class AppleTreeMainWindow(Qt.QMainWindow):
             [
                 dict(name='Insert image', icon='image-insert', shortcut='CTRL+SHIFT+I',
                      callback=self.on_toolbar_insert_image),
+                dict(name='Export to PDF', icon='pdf', shortcut=None,
+                     callback=self.on_toolbar_export_pdf),
             ])
 
         self.setGeometry(50, 50, 1440, 800)
@@ -242,3 +244,11 @@ class AppleTreeMainWindow(Qt.QMainWindow):
             return None
 
         projectv.on_toolbar_save()
+
+    def on_toolbar_export_pdf(self):
+        docid, editor = self.getCurrentEditor()
+        if not editor:
+            self.log.warn("on_toolbar_export_pdf(): no current editor")
+            return None
+
+        editor.exportToPdf()
