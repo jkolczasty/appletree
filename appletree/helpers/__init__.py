@@ -39,6 +39,11 @@ def getIcon(name):
     return Qt.QIcon(fn)
 
 
+def getIconSvg(name):
+    fn = os.path.join("icons", name + ".svg")
+    return Qt.QIcon(fn)
+
+
 def getIconImage(name):
     fn = os.path.join("icons", name + ".png")
     return Qt.QImage(fn)

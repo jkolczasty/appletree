@@ -28,7 +28,7 @@ from weakref import ref
 from appletree.gui.qt import Qt, QtGui, QtCore
 from appletree.gui.toolbar import Toolbar
 from appletree.gui.utils import CurrentEditorDelegation
-from appletree.helpers import genuid, getIcon, T, messageDialog
+from appletree.helpers import genuid, getIcon, getIconSvg, T, messageDialog
 from appletree.gui.tabtexteditor import TabEditorText
 from appletree.gui.treeview import QATTreeWidget
 
@@ -102,7 +102,7 @@ class ProjectView(Qt.QWidget):
     def buildToolbar(self):
         self.toolbar = Toolbar(self)
 
-        self.toolbar.addButton("save", Qt.QIcon.fromTheme('document-save'),
+        self.toolbar.addButton("save", getIconSvg('document-save'),
                                CurrentEditorDelegation(self, 'save', self.on_toolbar_editor_action))
 
         self.fontselection = Qt.QFontComboBox(self.toolbar)
@@ -118,11 +118,11 @@ class ProjectView(Qt.QWidget):
         self.toolbar.addWidget(self.fontsizeselection)
         self.toolbar.addButton("hr", getIcon("document-add"),
                                CurrentEditorDelegation(self, 'hr', self.on_toolbar_editor_action))
-        self.toolbar.addButton("format-justify-left", Qt.QIcon.fromTheme('format-justify-left'),
+        self.toolbar.addButton("format-justify-left", getIcon('format-justify-left'),
                                CurrentEditorDelegation(self, 'format-justify-left', self.on_toolbar_editor_action))
-        self.toolbar.addButton("format-justify-center", Qt.QIcon.fromTheme('format-justify-center'),
+        self.toolbar.addButton("format-justify-center", getIcon('format-justify-center'),
                                CurrentEditorDelegation(self, 'format-justify-center', self.on_toolbar_editor_action))
-        self.toolbar.addButton("format-justify-right", Qt.QIcon.fromTheme('format-justify-right'),
+        self.toolbar.addButton("format-justify-right", getIcon('format-justify-right'),
                                CurrentEditorDelegation(self, 'format-justify-right', self.on_toolbar_editor_action))
         win = self.win()
         if not win:
