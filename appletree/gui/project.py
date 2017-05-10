@@ -102,6 +102,9 @@ class ProjectView(Qt.QWidget):
     def buildToolbar(self):
         self.toolbar = Toolbar(self)
 
+        self.toolbar.addButton("save", Qt.QIcon.fromTheme('document-save-symbolic'),
+                               CurrentEditorDelegation(self, 'save', self.on_toolbar_editor_action))
+
         self.fontselection = Qt.QFontComboBox(self.toolbar)
         self.fontselection.currentFontChanged.connect(CurrentEditorDelegation(self, 'on_fontselection_change'))
         self.toolbar.addWidget(self.fontselection)
@@ -496,6 +499,9 @@ class ProjectView(Qt.QWidget):
         self.save()
 
     def on_toolbar_editor_action(self, name, editor, *args):
+        if name == 'save':
+            return self.save()
+
         editor.on_toolbar_editor_action(name)
 
 
