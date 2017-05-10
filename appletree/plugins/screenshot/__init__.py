@@ -35,8 +35,10 @@ class ScreenShotPlugin(ATPlugin):
     def initialize(self):
         win = self.win()
 
-        win.toolbar.addWithSeparatorLeft(
-            [dict(name='Insert screenshot', icon=self.getIcon('screenshot'), shortcut='CTRL+ALT+S', callback=self.on_toolbar_screenshot),
+    def buildToolbarApplication(self, toolbar):
+        toolbar.addWithSeparatorLeft(
+            [dict(name='Insert screenshot', icon=self.getIcon('screenshot'), shortcut='CTRL+ALT+S',
+                  callback=self.on_toolbar_screenshot),
              ])
 
     def on_toolbar_screenshot(self, *args):

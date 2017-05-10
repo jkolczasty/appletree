@@ -25,9 +25,9 @@ from appletree.helpers import getIcon
 from weakref import ref
 
 
-class MainWindowToolbar(Qt.QToolBar):
+class Toolbar(Qt.QToolBar):
     def __init__(self, win):
-        Qt.QToolBar.__init__(self)
+        Qt.QToolBar.__init__(self, win)
         self.win = ref(win)
 
     def _add(self, name, icon, shortcut, callback):
@@ -51,3 +51,9 @@ class MainWindowToolbar(Qt.QToolBar):
         for item in items:
             self._add(**item)
 
+    def addButton(self, name, icon, callback, shortcut=None):
+        button = Qt.QAction(icon, name, self.win())
+        if shortcut:
+            button.setShortcut(shortcut)
+        button.triggered.connect(callback)
+        self.addAction(button)

@@ -205,6 +205,12 @@ class ATPlugin(object):
     def on_plugin_menu(self):
         pass
 
+    def buildToolbarProject(self, projectv, toolbar):
+        return
+
+    def buildToolbarApplication(self, toolbar):
+        return
+
 
 class ATPlugins(object):
     plugins = None

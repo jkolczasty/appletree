@@ -25,10 +25,8 @@ from appletree.gui.qt import Qt
 
 
 class TestPlugin(ATPlugin):
-    def initialize(self):
-        win = self.win()
-
-        win.toolbar.addWithSeparatorLeft(
+    def buildToolbarApplication(self, toolbar):
+        toolbar.addWithSeparatorLeft(
             [dict(name='Hello', icon=self.getIcon('toolbar'), shortcut='CTRL+A', callback=self.on_toolbar_hello),
              ])
 
@@ -60,5 +58,6 @@ class TestPlugin(ATPlugin):
         # msg.buttonClicked.connect(msgbtn)
 
         msg.exec_()
+
 
 FACTORY = TestPlugin

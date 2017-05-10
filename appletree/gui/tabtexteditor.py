@@ -215,6 +215,16 @@ class TabEditorText(Qt.QWidget):
         cursor.insertImage(imagef)
         del imagef
 
+    def insertElement(self, name):
+        if name == 'hr':
+            #self.editor.T
+            # cursor = self.editor.textCursor()
+            # f = Qt.QTextBlockFormat()
+            #f.setBackground()
+            # f.setLineHeight(3)
+            self.log.info("Insert hr")
+            self.editor.insertHtml("<hr/>")
+
     def exportToPdf(self):
         result = Qt.QFileDialog.getSaveFileName(self, "Export document to pdf", "", "PDF document (*.pdf)")
         if QTVERSION == 4:
@@ -366,15 +376,15 @@ class TabEditorText(Qt.QWidget):
 
         clipboard = Qt.QApplication.clipboard()
         image = clipboard.pixmap()
-        if not image:
-            self.log.info("imagepaste(): no image in clipboard")
-            return
 
-        # if image.isNull():
-        #     self.log.info("imagepaste(): no image in clipboard/2")
-        #     # NOTE: should it be deleted?
-        #     del image
-        #     return
+        if not image or image.isNull():
+            image = clipboard.image()
+
+        if not image or image.isNull():
+            self.log.info("imagepaste(): no image in clipboard/2")
+            # NOTE: should it be deleted?
+            del image
+            return
 
         self.insertImage(genuid(), image=image)
 
@@ -389,7 +399,7 @@ class TabEditorText(Qt.QWidget):
     def on_fontsizeselection_change(self, size):
         if self.ignorechanges:
             return
-        
+
         _format = Qt.QTextCharFormat()
         _format.setFontPointSize(size)
         self.editor.mergeCurrentCharFormat(_format)

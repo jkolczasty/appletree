@@ -27,24 +27,13 @@ import logging
 from weakref import ref
 from appletree.gui.qt import Qt, QtCore
 from appletree.helpers import getIcon
-from appletree.gui.mwtoolbar import MainWindowToolbar
+from appletree.gui.toolbar import Toolbar
+from appletree.gui.utils import ObjectCallbackWrapperRef
 from appletree.project import Projects
 from appletree.plugins.base import ATPlugins
 from appletree.gui.project import ProjectView, NewProjectDialog
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
-
-
-class MenuProjectWrapper(object):
-    def __init__(self, win, projectid):
-        self.win = ref(win)
-        self.projectid = projectid
-
-    def __call__(self, *args, **kwargs):
-        win = self.win()
-        if not win:
-            return
-        win.on_menu_project(self.projectid)
 
 
 class AppleTreeMainWindow(Qt.QMainWindow):
@@ -60,7 +49,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.setWindowTitle("AppleTree (Qt " + Qt.QT_VERSION_STR + ")")
 
         self.menubar = Qt.QMenuBar()
-        self.toolbar = MainWindowToolbar(self)
+        self.toolbar = Toolbar(self)
 
         self.menuprojects = self.menubar.addMenu("Projects")
         self.menuplugins = self.menubar.addMenu("Plugins")
@@ -72,21 +61,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.projects.load()
         self.projectsViews = dict()
 
-        # TODO: remove static code, move to dynamic build of toolbars and menus
-        self.toolbar.add(
-            [dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
-             dict(name='Save', icon='save', shortcut='CTRL+S', callback=self.on_toolbar_save),
-             dict(name='Add document', icon='document-add', shortcut='CTRL+SHIFT++',
-                  callback=self.on_toolbar_document_add),
-             ])
-
-        self.toolbar.addWithSeparatorLeft(
-            [
-                dict(name='Insert image', icon='image-insert', shortcut='CTRL+SHIFT+I',
-                     callback=self.on_toolbar_insert_image),
-                dict(name='Export to PDF', icon='pdf', shortcut=None,
-                     callback=self.on_toolbar_export_pdf),
-            ])
+        self.buildToolbar()
 
         self.setGeometry(50, 50, 1440, 800)
         box = Qt.QVBoxLayout()
@@ -114,12 +89,43 @@ class AppleTreeMainWindow(Qt.QMainWindow):
                 continue
             self.projectOpen(projectid)
 
+    def buildToolbar(self):
+
+        # TODO: remove static code, move to dynamic build of toolbars and menus
+        self.toolbar.add(
+            [dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
+             dict(name='Save', icon='save', shortcut='CTRL+S', callback=self.on_toolbar_save),
+             dict(name='Add document', icon='document-add', shortcut='CTRL+SHIFT++',
+                  callback=self.on_toolbar_document_add),
+             ])
+
+        self.toolbar.addWithSeparatorLeft(
+            [
+                dict(name='Insert image', icon='image-insert', shortcut='CTRL+SHIFT+I',
+                     callback=self.on_toolbar_insert_image),
+                dict(name='Export to PDF', icon='pdf', shortcut=None,
+                     callback=self.on_toolbar_export_pdf),
+            ])
+
+        for p in self.plugins:
+            try:
+                p.buildToolbarApplication(self.toolbar)
+            except Exception as e:
+                self.log.error("buildToolbar(): %s: %s", e.__class__.__name__, e)
+
+    def buildToolbarProject(self, projectv, toolbar):
+        for p in self.plugins:
+            try:
+                p.buildToolbarProject(projectv, toolbar)
+            except Exception as e:
+                self.log.error("buildToolbarProject(): %s: %s", e.__class__.__name__, e)
+
     def projectAdd(self, projectid):
         project = self.projects.open(projectid)
         if not project:
             return
         action = Qt.QAction(project.name, self)
-        action.triggered.connect(MenuProjectWrapper(self, projectid))
+        action.triggered.connect(ObjectCallbackWrapperRef(self, 'on_menu_project', projectid))
         self.menuprojects.addAction(action)
 
     def projectOpen(self, projectid):
@@ -200,7 +206,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         project.active = False
         self.projects.save()
 
-    def on_menu_project(self, projectid):
+    def on_menu_project(self, projectid, *args):
         self.projectOpen(projectid)
 
     def on_toolbar_insert_image(self, *args):

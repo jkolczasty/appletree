@@ -26,6 +26,8 @@ from __future__ import print_function
 import logging
 from weakref import ref
 from appletree.gui.qt import Qt, QtGui, QtCore
+from appletree.gui.toolbar import Toolbar
+from appletree.gui.utils import CurrentEditorDelegation
 from appletree.helpers import genuid, getIcon, T, messageDialog
 from appletree.gui.tabtexteditor import TabEditorText
 from appletree.gui.treeview import QATTreeWidget
@@ -33,23 +35,11 @@ from appletree.gui.treeview import QATTreeWidget
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 
 
-class CurrentEditorDelegation(object):
-    def __init__(self, win, name):
-        self.win = ref(win)
-        self.name = name
-
-    def __call__(self, *args, **kwargs):
-        win = self.win()
-        if not win:
-            return
-        docid, editor = win.getCurrentEditor()
-        if not editor or not hasattr(editor, self.name):
-            return
-        fn = getattr(editor, self.name)
-        return fn(*args, **kwargs)
-
-
 class ProjectView(Qt.QWidget):
+    toolbar = None
+    fontselection = None
+    fontsizeselection = None
+
     def __init__(self, win, project, *args):
         super(ProjectView, self).__init__(win, *args)
         self.win = ref(win)
@@ -63,19 +53,6 @@ class ProjectView(Qt.QWidget):
         splitter = Qt.QSplitter()
         box = Qt.QVBoxLayout()
         tree = QATTreeWidget(self)
-        self.toolbar = Qt.QToolBar(self)
-
-        self.fontselection = Qt.QFontComboBox(self.toolbar)
-        self.fontselection.currentFontChanged.connect(CurrentEditorDelegation(self, 'on_fontselection_change'))  # self.on_fontselection_change)
-        self.toolbar.addWidget(self.fontselection)
-
-        self.fontsizeselection = Qt.QSpinBox(self.toolbar)
-        self.fontsizeselection.setMinimum(4)
-        self.fontsizeselection.setMaximum(32)
-        self.fontsizeselection.setValue(14)
-        self.fontsizeselection.valueChanged.connect(CurrentEditorDelegation(self, 'on_fontsizeselection_change'))
-
-        self.toolbar.addWidget(self.fontsizeselection)
 
         tabs = Qt.QTabWidget()
         tabs.setTabsClosable(True)
@@ -96,6 +73,8 @@ class ProjectView(Qt.QWidget):
         tree.setColumnHidden(2, True)
 
         self.setLayout(box)
+        self.buildToolbar()
+
         box.addWidget(self.toolbar)
         box.addWidget(splitter)
 
@@ -120,6 +99,26 @@ class ProjectView(Qt.QWidget):
 
         self.ready = True
         self.treeready = False
+
+    def buildToolbar(self):
+        self.toolbar = Toolbar(self)
+
+        self.fontselection = Qt.QFontComboBox(self.toolbar)
+        self.fontselection.currentFontChanged.connect(CurrentEditorDelegation(self, 'on_fontselection_change'))
+        self.toolbar.addWidget(self.fontselection)
+
+        self.fontsizeselection = Qt.QSpinBox(self.toolbar)
+        self.fontsizeselection.setMinimum(4)
+        self.fontsizeselection.setMaximum(32)
+        self.fontsizeselection.setValue(14)
+        self.fontsizeselection.valueChanged.connect(CurrentEditorDelegation(self, 'on_fontsizeselection_change'))
+
+        self.toolbar.addWidget(self.fontsizeselection)
+        win = self.win()
+        if not win:
+            return
+
+        win.buildToolbarProject(self, self.toolbar)
 
     def close(self):
         self.log.info("Close project")
@@ -181,73 +180,6 @@ class ProjectView(Qt.QWidget):
         tree, count = self.getDocumentTree(root)
 
         backend.setDocumentsTree(tree)
-
-    def on_tree_item_selection(self):
-        items = self.tree.selectedItems()
-        if not items:
-            return
-        item = items[0]
-
-        _type = item.text(2)
-        if _type != 'D':
-            return
-
-        docid = item.text(1)
-        if not docid:
-            return
-        docname = item.text(0)
-        self.open(docid, docname)
-
-    def on_tree_item_changed(self, item):
-        if not self.treeready:
-            return
-        self.log.info("on_tree_item_changed(): %s")
-        name = item.text(0)
-        uid = item.text(1)
-        if not uid:
-            return
-        self.tabSetLabel(uid, name)
-        self.saveDocumentsTree()
-
-    def on_tree_drop_event(self, event):
-        dropaction = event.dropAction()
-        if dropaction != QtCore.Qt.MoveAction:
-            event.ignore()
-            return True
-
-        return False
-
-    def on_tree_drop_after_event(self):
-        if not self.treeready:
-            return
-        self.log.info("on_tree_drop_after_event()")
-        self.saveDocumentsTree()
-
-    def on_tab_close_req(self, index, ignoreChanges=False):
-        widget = self.tabs.widget(index)
-        docid = widget.accessibleName()
-        # noinspection PyBroadException
-        try:
-            del self.editors[docid]
-        except:
-            pass
-
-        self.tabs.removeTab(index)
-        widget.destroy()
-
-        if self.tabs.count() == 0:
-            self.tabs.hide()
-
-    def on_tab_current_changed(self, index):
-        widget = self.tabs.widget(index)
-        if not widget:
-            return
-
-        docid = widget.accessibleName()
-        self.log.info("on_tab_current_changed(): docid %s", docid)
-        treeitem = self.treeFindDocument(docid)
-        if treeitem:
-            self.tree.setCurrentItem(treeitem)
 
     def treeFindDocument(self, docid):
         items = self.tree.findItems(docid, QtCore.Qt.MatchFixedString | QtCore.Qt.MatchRecursive, 1)
@@ -442,6 +374,73 @@ class ProjectView(Qt.QWidget):
         finally:
             self.treeready = True
             self.saveDocumentsTree()
+
+    def on_tree_item_selection(self):
+        items = self.tree.selectedItems()
+        if not items:
+            return
+        item = items[0]
+
+        _type = item.text(2)
+        if _type != 'D':
+            return
+
+        docid = item.text(1)
+        if not docid:
+            return
+        docname = item.text(0)
+        self.open(docid, docname)
+
+    def on_tree_item_changed(self, item):
+        if not self.treeready:
+            return
+        self.log.info("on_tree_item_changed(): %s")
+        name = item.text(0)
+        uid = item.text(1)
+        if not uid:
+            return
+        self.tabSetLabel(uid, name)
+        self.saveDocumentsTree()
+
+    def on_tree_drop_event(self, event):
+        dropaction = event.dropAction()
+        if dropaction != QtCore.Qt.MoveAction:
+            event.ignore()
+            return True
+
+        return False
+
+    def on_tree_drop_after_event(self):
+        if not self.treeready:
+            return
+        self.log.info("on_tree_drop_after_event()")
+        self.saveDocumentsTree()
+
+    def on_tab_close_req(self, index, ignoreChanges=False):
+        widget = self.tabs.widget(index)
+        docid = widget.accessibleName()
+        # noinspection PyBroadException
+        try:
+            del self.editors[docid]
+        except:
+            pass
+
+        self.tabs.removeTab(index)
+        widget.destroy()
+
+        if self.tabs.count() == 0:
+            self.tabs.hide()
+
+    def on_tab_current_changed(self, index):
+        widget = self.tabs.widget(index)
+        if not widget:
+            return
+
+        docid = widget.accessibleName()
+        self.log.info("on_tab_current_changed(): docid %s", docid)
+        treeitem = self.treeFindDocument(docid)
+        if treeitem:
+            self.tree.setCurrentItem(treeitem)
 
     # on_ below are passed from mw to current project
 
