@@ -301,9 +301,11 @@ class ProjectView(Qt.QWidget):
     def _cloneDocuments(self, srcuid, srcname, items, parent, srcprojectv):
         dstuid = genuid()
 
+        docmeta = srcprojectv.project.doc.getDocumentMeta(srcuid)
         docbody = srcprojectv.project.doc.getDocumentBody(srcuid)
         images = srcprojectv.project.doc.getImages(srcuid)
 
+        self.project.doc.putDocumentMeta(dstuid, docmeta)
         self.project.doc.putDocumentBody(dstuid, docbody)
         for image in images:
             __image = srcprojectv.project.doc.getImage(srcuid, image)
