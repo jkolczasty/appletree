@@ -32,6 +32,7 @@ from appletree.helpers import genuid, getIcon, getIconSvg, T, messageDialog
 from appletree.gui.editor import Editor
 from appletree.gui.rteditor import RTEditor
 from appletree.gui.pteditor import PTEditor
+from appletree.gui.tableeditor import TableEditor
 from appletree.gui.treeview import QATTreeWidget
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
