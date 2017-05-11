@@ -24,7 +24,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import logging
-from weakref import ref
 from appletree.gui.qt import Qt, QtCore
 from appletree.helpers import getIcon
 from appletree.gui.toolbar import Toolbar
@@ -94,18 +93,10 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         # TODO: remove static code, move to dynamic build of toolbars and menus
         self.toolbar.add(
             [dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
-             dict(name='Save', icon='save', shortcut='CTRL+S', callback=self.on_toolbar_save),
+             # dict(name='Save', icon='save', shortcut='CTRL+S', callback=self.on_toolbar_save),
              dict(name='Add document', icon='document-add', shortcut='CTRL+SHIFT++',
                   callback=self.on_toolbar_document_add),
              ])
-
-        self.toolbar.addWithSeparatorLeft(
-            [
-                dict(name='Insert image', icon='image-insert', shortcut='CTRL+SHIFT+I',
-                     callback=self.on_toolbar_insert_image),
-                dict(name='Export to PDF', icon='pdf', shortcut=None,
-                     callback=self.on_toolbar_export_pdf),
-            ])
 
         for p in self.plugins:
             try:
@@ -119,6 +110,13 @@ class AppleTreeMainWindow(Qt.QMainWindow):
                 p.buildToolbarProject(projectv, toolbar)
             except Exception as e:
                 self.log.error("buildToolbarProject(): %s: %s", e.__class__.__name__, e)
+
+    def buildToolbarEditor(self, editor, toolbar):
+        for p in self.plugins:
+            try:
+                p.buildToolbarEditor(editor, toolbar)
+            except Exception as e:
+                self.log.error("buildToolbarEditor(): %s: %s", e.__class__.__name__, e)
 
     def projectAdd(self, projectid):
         project = self.projects.open(projectid)

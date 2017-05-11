@@ -25,14 +25,15 @@ from __future__ import print_function
 
 import logging
 from weakref import ref
-from appletree.gui.qt import Qt, QtGui, QtCore
+from appletree.gui.qt import Qt, QtCore
 from appletree.gui.toolbar import Toolbar
-from appletree.gui.utils import CurrentEditorDelegation
-from appletree.helpers import genuid, getIcon, getIconSvg, T, messageDialog
+from appletree.helpers import genuid, getIcon, T, messageDialog
 from appletree.gui.editor import Editor
+
 from appletree.gui.rteditor import RTEditor
 from appletree.gui.pteditor import PTEditor
 from appletree.gui.tableeditor import TableEditor
+
 from appletree.gui.treeview import QATTreeWidget
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
@@ -69,8 +70,6 @@ class ProjectView(Qt.QWidget):
         splitter.setStretchFactor(1, 1)
         splitter.setSizePolicy(Qt.QSizePolicy.Expanding, Qt.QSizePolicy.Expanding)
 
-        # self.splitter.show()
-        # self.tree.show()
         tree.setColumnCount(3)
         tree.setColumnHidden(1, True)
         tree.setColumnHidden(2, True)
@@ -82,7 +81,6 @@ class ProjectView(Qt.QWidget):
         box.addWidget(splitter)
 
         tree.setHeaderHidden(True)
-        # tree.setSelectionModel(Qt.QItemSelectionModel.)
         tree.setDragDropMode(Qt.QAbstractItemView.InternalMove)
         tree.setAcceptDrops(True)
         tree.setAutoScroll(True)
@@ -104,34 +102,22 @@ class ProjectView(Qt.QWidget):
 
     def buildToolbar(self):
         self.toolbar = Toolbar(self)
-
-        self.toolbar.addButton("save", getIconSvg('document-save'),
-                               CurrentEditorDelegation(self, 'save', self.on_toolbar_editor_action))
-
-        self.fontselection = Qt.QFontComboBox(self.toolbar)
-        self.fontselection.currentFontChanged.connect(CurrentEditorDelegation(self, 'on_fontselection_change'))
-        self.toolbar.addWidget(self.fontselection)
-
-        self.fontsizeselection = Qt.QSpinBox(self.toolbar)
-        self.fontsizeselection.setMinimum(4)
-        self.fontsizeselection.setMaximum(32)
-        self.fontsizeselection.setValue(14)
-        self.fontsizeselection.valueChanged.connect(CurrentEditorDelegation(self, 'on_fontsizeselection_change'))
-
-        self.toolbar.addWidget(self.fontsizeselection)
-        self.toolbar.addButton("hr", getIcon("document-add"),
-                               CurrentEditorDelegation(self, 'hr', self.on_toolbar_editor_action))
-        self.toolbar.addButton("format-justify-left", getIcon('format-justify-left'),
-                               CurrentEditorDelegation(self, 'format-justify-left', self.on_toolbar_editor_action))
-        self.toolbar.addButton("format-justify-center", getIcon('format-justify-center'),
-                               CurrentEditorDelegation(self, 'format-justify-center', self.on_toolbar_editor_action))
-        self.toolbar.addButton("format-justify-right", getIcon('format-justify-right'),
-                               CurrentEditorDelegation(self, 'format-justify-right', self.on_toolbar_editor_action))
+        c = len(self.toolbar.children())
         win = self.win()
         if not win:
             return
 
         win.buildToolbarProject(self, self.toolbar)
+        if len(self.toolbar.children()) == c:
+            # no items
+            self.toolbar.hide()
+
+    def buildToolbarEditor(self, editor, toolbar):
+        win = self.win()
+        if not win:
+            return
+
+        win.buildToolbarEditor(editor, toolbar)
 
     def close(self):
         self.log.info("Close project")

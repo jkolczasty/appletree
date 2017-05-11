@@ -26,31 +26,28 @@ import tempfile
 import shlex
 import subprocess
 import os
+from weakref import ref
 
 
 class ScreenShotPlugin(ATPlugin):
     friendly_name = "Screenshot Plugin"
     config_defaults = {'screenshot_exec': "spectacle -r -b -d 5000 -n -o {tempfilename}"}
 
-    def initialize(self):
-        win = self.win()
+    def buildToolbarEditor(self, editor, toolbar):
+        if not editor.has_images:
+            return
 
-    def buildToolbarApplication(self, toolbar):
-        toolbar.addWithSeparatorLeft(
-            [dict(name='Insert screenshot', icon=self.getIcon('screenshot'), shortcut='CTRL+ALT+S',
-                  callback=self.on_toolbar_screenshot),
-             ])
+        toolbar.addButtonObjectAction(self, 'screenshot', self.getIcon('screenshot'), desc=T("Insert screenshot"),
+                                      shortcut='CTRL+ALT+S', args=[ref(editor)])
 
-    def on_toolbar_screenshot(self, *args):
-        try:
-            win = self.win()
-            if not win:
-                return
-            docid, editor = win.getCurrentEditor()
-            if not docid or not editor or not editor.has_images:
-                return
-        except:
-            pass
+    def on_toolbar_action(self, action, *args):
+        if action == 'screenshot':
+            return self.on_toolbar_screenshot(*args)
+
+    def on_toolbar_screenshot(self, editorref, *args):
+        editor = editorref()
+        if not editor:
+            return
 
         if not self.config.get('screenshot_exec'):
             self.messageDialog(T("Screenshot Plugin"), T("Screenshot tools is not configured. Update preferences."))

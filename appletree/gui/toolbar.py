@@ -21,6 +21,7 @@
 #
 
 from appletree.gui.qt import Qt
+from appletree.gui.utils import ObjectCallbackWrapperRef
 from appletree.helpers import getIcon
 from weakref import ref
 
@@ -57,3 +58,6 @@ class Toolbar(Qt.QToolBar):
             button.setShortcut(shortcut)
         button.triggered.connect(callback)
         self.addAction(button)
+
+    def addButtonObjectAction(self, obj, name, icon, desc=None, shortcut=None, args=[]):
+        self.addButton(desc or name, icon, ObjectCallbackWrapperRef(obj, 'on_toolbar_action', name, *args), shortcut)

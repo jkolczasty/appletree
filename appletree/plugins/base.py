@@ -205,6 +205,9 @@ class ATPlugin(object):
     def on_plugin_menu(self):
         pass
 
+    def buildToolbarEditor(self, editor, toolbar):
+        return
+
     def buildToolbarProject(self, projectv, toolbar):
         return
 
@@ -240,7 +243,6 @@ class ATPlugins(object):
             mod = sys.modules[module]
             return mod, None
         except Exception as e:
-            # print ">>>",e
             if self.debug:
                 traceback.print_exc(100, file=sys.stdout)
             return None, str(e)

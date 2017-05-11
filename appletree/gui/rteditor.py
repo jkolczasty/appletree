@@ -20,11 +20,9 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-import logging
-from weakref import ref
 import os
 from appletree.gui.qt import QTVERSION, Qt, QtCore, loadQImageFix
-from appletree.helpers import T, genuid, messageDialog
+from appletree.helpers import T, genuid, messageDialog, getIcon
 from .rteditorbase import QTextEdit, RTDocument, ImageResizeDialog
 from .editor import Editor, EDITORS
 
@@ -32,7 +30,9 @@ from .editor import Editor, EDITORS
 class RTEditor(Editor):
     prevModified = False
     doc = None
-    has_images = False
+    has_images = True
+    fontselection = None
+    fontsizeselection = None
 
     def __init__(self, win, project, docid, docname):
         super(RTEditor, self).__init__(win, project, docid, docname)
@@ -58,6 +58,26 @@ class RTEditor(Editor):
 
         return self.editor
 
+    def buildToolbarLocal(self):
+        self.fontselection = Qt.QFontComboBox(self.toolbar)
+        self.fontselection.currentFontChanged.connect(self.on_fontselection_change)
+
+        self.fontsizeselection = Qt.QSpinBox(self.toolbar)
+        self.fontsizeselection.setMinimum(4)
+        self.fontsizeselection.setMaximum(32)
+        self.fontsizeselection.setValue(14)
+        self.fontsizeselection.valueChanged.connect(self.on_fontsizeselection_change)
+
+        self.toolbar.addWidget(self.fontselection)
+        self.toolbar.addWidget(self.fontsizeselection)
+        self.toolbar.addButtonObjectAction(self, "format-justify-left", getIcon('format-justify-left'))
+        self.toolbar.addButtonObjectAction(self, "format-justify-center", getIcon('format-justify-center'))
+        self.toolbar.addButtonObjectAction(self, "format-justify-right", getIcon('format-justify-right'))
+
+        self.toolbar.addSeparator()
+        self.toolbar.addButtonObjectAction(self, 'insert-image', getIcon('image-insert'), desc='Insert image',
+                                           shortcut='CTRL+SHIFT+I')
+
     def destroy(self, *args):
         super(RTEditor, self).destroy(*args)
         self.log.info("Destroy")
@@ -66,6 +86,31 @@ class RTEditor(Editor):
             self.doc.clear()
             del self.doc
             self.doc = None
+
+    def save(self, *args):
+        self.log.info("save()")
+
+        # first getimages, couse this method can change body settings
+        images = self.getImages()
+        imageslocal = []
+        body = self.getBody()
+        # save images
+        for res in images:
+            if res.startswith('data:image/'):
+                # ignore inline encoded images
+                continue
+            url = Qt.QUrl()
+            url.setUrl(res)
+            resobj = self.doc.resource(Qt.QTextDocument.ImageResource, url)
+
+            localname = self.project.doc.putImage(self.docid, res, resobj)
+            if localname:
+                imageslocal.append(localname)
+
+        if self.project.doc.putDocumentBody(self.docid, body):
+            self.setModified(False)
+
+        self.project.doc.clearImagesOld(self.docid, imageslocal)
 
     def setModified(self, modified):
         self.doc.setModified(modified)
@@ -135,10 +180,10 @@ class RTEditor(Editor):
         cursor.insertImage(imagef)
         del imagef
 
-    def on_toolbar_editor_action(self, name):
-        if name == 'hr':
-            self.editor.insertHtml("<p><hr/></p>")
+    def on_toolbar_action(self, name, *args):
+        if super(RTEditor, self).on_toolbar_action(name, *args):
             return
+
         if name == 'format-justify-center':
             self.editor.setAlignment(QtCore.Qt.AlignCenter)
             return
@@ -332,15 +377,11 @@ class RTEditor(Editor):
         self.editor.setFontPointSize(size)
 
     def on_cursor_possition_changed(self):
-        win = self.win()
-        if not win:
-            return
-
         self.ignorechanges = True
         try:
             font = self.editor.currentFont()
-            win.fontsizeselection.setValue(font.pointSize())
-            win.fontselection.setCurrentFont(font)
+            self.fontsizeselection.setValue(font.pointSize())
+            self.fontselection.setCurrentFont(font)
         finally:
             self.ignorechanges = False
 

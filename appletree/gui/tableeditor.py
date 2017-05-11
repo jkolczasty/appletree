@@ -21,37 +21,27 @@
 #
 
 
-import os
-from appletree.gui.qt import QTVERSION, Qt, QtCore, loadQImageFix
-from appletree.helpers import T, genuid, messageDialog
+from appletree.gui.qt import QTVERSION, Qt, QtCore
+from appletree.helpers import T
 from appletree.gui.utils import ObjectCallbackWrapperRef
 from .editor import Editor, EDITORS
 from io import StringIO
 import csv
+
 
 class TableEditor(Editor):
     prevModified = False
     model = None
     has_images = False
 
-    # def __init__(self, win, project, docid, docname):
-    #     super(TableEditor, self).__init__(win, project, docid, docname)
-
     def createEditorWidget(self):
         self.editor = Qt.QTableView(parent=self)
         self.model = Qt.QStandardItemModel(self.editor)
         self.editor.setModel(self.model)
         self.editor.setItemDelegate(Qt.QItemDelegate(self.editor))
-        # self.editor.cursorPositionChanged.connect(self.on_cursor_possition_changed)
 
         docbody = self.project.doc.getDocumentBody(self.docid)
         self.putBody(docbody)
-
-
-        # font = Qt.QFont("Courier")
-        # font.setPointSize(14)
-        # self.editor.setFont(font)
-        # self.doc.setModified(False)
 
         self.editor.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.editor.customContextMenuRequested.connect(self.on_contextmenu_event)
@@ -63,10 +53,6 @@ class TableEditor(Editor):
         self.log.info("Destroy")
 
     def setModified(self, modified):
-        # self.doc.setModified(modified)
-        # # NOTE: change also self.prevModified?
-        # self.prevModified = None
-        # self.on_text_changed()
         pass
 
     def getBody(self):

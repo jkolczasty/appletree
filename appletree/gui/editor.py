@@ -23,13 +23,15 @@
 import logging
 from weakref import ref
 from appletree.gui.qt import Qt
-from appletree.helpers import getIcon
+from appletree.helpers import getIcon, getIconSvg
 from collections import OrderedDict
+from .toolbar import Toolbar
 
 EDITORS = OrderedDict()
 
 
 class Editor(Qt.QWidget):
+    toolbar = None
     prevModified = False
     has_images = False
 
@@ -42,10 +44,14 @@ class Editor(Qt.QWidget):
 
         self.docid = docid
         self.docname = docname
+
+        self.buildToolbar()
+
         h1 = Qt.QVBoxLayout()
         splitter = Qt.QSplitter()
 
         self.setLayout(h1)
+        h1.addWidget(self.toolbar)
         h1.addWidget(splitter)
 
         self.editor = self.createEditorWidget()
@@ -100,6 +106,21 @@ class Editor(Qt.QWidget):
         global EDITORS
         return EDITORS.keys()
 
+    def buildToolbar(self):
+        self.toolbar = Toolbar(self)
+
+        self.toolbar.addButtonObjectAction(self, "save", getIconSvg('document-save'))
+        self.buildToolbarLocal()
+
+        win = self.win()
+        if not win:
+            return
+
+        win.buildToolbarEditor(self, self.toolbar)
+
+    def buildToolbarLocal(self):
+        return
+
     def createEditorWidget(self):
         return None
 
@@ -112,6 +133,14 @@ class Editor(Qt.QWidget):
             self.elements.destroy()
             del self.elements
             self.elements = None
+
+    def save(self, *args):
+        self.log.info("save()")
+
+        body = self.getBody()
+
+        if self.project.doc.putDocumentBody(self.docid, body):
+            self.setModified(False)
 
     def setModified(self, modified):
         return None
@@ -151,3 +180,26 @@ class Editor(Qt.QWidget):
 
     def exportToPdf(self):
         return None
+
+    def on_toolbar_action(self, action, *args):
+        if action == 'save':
+            self.save()
+            return True
+
+        if action == 'insert-image':
+            if not self.has_images:
+                return
+            self.on_toolbar_insert_image()
+
+    def on_toolbar_insert_image(self, *args):
+        dialog = Qt.QFileDialog()
+        dialog.setFileMode(Qt.QFileDialog.AnyFile)
+        dialog.setNameFilters(["Images JPEG/PNG/TIFF (*.png *.jpg *.jpeg *.tiff)", ])
+
+        if not dialog.exec_():
+            return
+
+        filenames = dialog.selectedFiles()
+
+        for fn in filenames:
+            self.insertImage(fn)
