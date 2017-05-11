@@ -128,6 +128,13 @@ class Editor(Qt.QWidget):
     def createEditorWidget(self):
         return None
 
+    def closeRequest(self):
+        if self.isModified():
+            if not messageDialog("Close document: unsaved changes",
+                                 "You are about close document with unsaved changes. Are you sure?", OkCancel=True):
+                return False
+        return True
+
     def destroy(self, *args):
         self.log.info("Destroy")
 

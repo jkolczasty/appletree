@@ -33,10 +33,12 @@ class TableEditor(Editor):
     prevModified = False
     model = None
     has_images = False
+    modified = False
 
     def createEditorWidget(self):
         self.editor = Qt.QTableView(parent=self)
         self.model = Qt.QStandardItemModel(self.editor)
+        self.model.itemChanged.connect(self.on_item_changed)
         self.editor.setModel(self.model)
         self.editor.setItemDelegate(Qt.QItemDelegate(self.editor))
 
@@ -53,10 +55,10 @@ class TableEditor(Editor):
         self.log.info("Destroy")
 
     def isModified(self):
-        return True  # for know, we don't know if table was modified
+        return self.modified # for know, we don't know if table was modified
 
     def setModified(self, modified):
-        pass
+        self.modified = modified
 
     def getBody(self):
         ios = StringIO()
@@ -77,6 +79,14 @@ class TableEditor(Editor):
         for r in cs:
             items = [Qt.QStandardItem(s) for s in r]
             self.model.appendRow(items)
+
+    def on_item_changed(self, item):
+        win = self.win()
+        if not win:
+            return
+
+        name = self.docname if not self.modified else self.docname + " *"
+        win.tabSetLabel(self.docid, name)
 
     def on_toolbar_editor_action(self, name):
         return None

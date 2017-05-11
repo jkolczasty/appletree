@@ -119,6 +119,24 @@ class ProjectView(Qt.QWidget):
 
         win.buildToolbarEditor(editor, toolbar)
 
+    def isModified(self):
+        modified = 0
+        for editor in self.editors.values():
+            if editor.isModified():
+                modified += 1
+
+        return modified
+
+    def closeRequest(self):
+        modified = self.isModified()
+
+        if modified:
+            if not messageDialog("Close project: unsaved changes",
+                                 "You are about close project with unsaved changes. Are you sure?",
+                                 details="Unsaved documents: " + str(modified), OkCancel=True):
+                return False
+        return True
+
     def close(self):
         self.log.info("Close project")
         super(ProjectView, self).close()
@@ -237,7 +255,8 @@ class ProjectView(Qt.QWidget):
         _type = meta.get('type') or 'richtext'
         tabeditor = Editor.Editor(_type, self, self.project, docid, name)
         if not tabeditor:
-            messageDialog("Unknown document type", "Unknown document type. Could not find suitable editor for it.", details=_type)
+            messageDialog("Unknown document type", "Unknown document type. Could not find suitable editor for it.",
+                          details=_type)
             return
 
         self.editors[docid] = tabeditor
@@ -455,6 +474,11 @@ class ProjectView(Qt.QWidget):
     def on_tab_close_req(self, index, ignoreChanges=False):
         widget = self.tabs.widget(index)
         docid = widget.accessibleName()
+        editor = self.editors.get(docid)
+        if editor and not ignoreChanges:
+            if not editor.closeRequest():
+                return
+
         # noinspection PyBroadException
         try:
             del self.editors[docid]

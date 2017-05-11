@@ -25,7 +25,7 @@ from __future__ import print_function
 
 import logging
 from appletree.gui.qt import Qt, QtCore
-from appletree.helpers import getIcon, getIconSvg
+from appletree.helpers import getIcon, getIconSvg, messageDialog
 from appletree.gui.toolbar import Toolbar
 from appletree.gui.utils import ObjectCallbackWrapperRef
 from appletree.project import Projects
@@ -182,6 +182,26 @@ class AppleTreeMainWindow(Qt.QMainWindow):
     def save(self, *args):
         pass
 
+    def closeEvent(self, event):
+        event.ignore()
+
+        modifiedp = 0
+        modified = 0
+        for pv in self.projectsViews.values():
+            _modified = pv.isModified()
+            if _modified:
+                modifiedp += 1
+
+            modified += _modified
+
+        if modified:
+            if not messageDialog("Close project: unsaved changes",
+                                 "You are about close project with unsaved changes. Are you sure?",
+                                 details="Unsaved projects: {0}\nUnsaved documents: {1}".format(modifiedp, modified), OkCancel=True):
+                return
+
+        event.accept()
+
     # signals/callbacks
 
     # project close
@@ -193,6 +213,9 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         project = self.projects.get(projectid)
         projectv = self.projectsViews.get(projectid)
         if not project or not projectv:
+            return
+
+        if not ignoreChanges and not projectv.closeRequest():
             return
 
         projectv.close()
