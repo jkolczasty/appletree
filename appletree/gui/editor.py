@@ -157,7 +157,11 @@ class Editor(Qt.QWidget):
         return None
 
     def setModified(self, modified):
-        return None
+        win = self.win()
+        if not win:
+            return
+        name = self.docname if not modified else self.docname + " *"
+        win.tabSetLabel(self.docid, name)
 
     def _findElement(self, docid):
         root = self.elementsroot

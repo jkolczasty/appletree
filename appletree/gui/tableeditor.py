@@ -55,10 +55,11 @@ class TableEditor(Editor):
         self.log.info("Destroy")
 
     def isModified(self):
-        return self.modified # for know, we don't know if table was modified
+        return self.modified
 
     def setModified(self, modified):
         self.modified = modified
+        super(TableEditor, self).setModified(modified)
 
     def getBody(self):
         ios = StringIO()
@@ -81,12 +82,7 @@ class TableEditor(Editor):
             self.model.appendRow(items)
 
     def on_item_changed(self, item):
-        win = self.win()
-        if not win:
-            return
-
-        name = self.docname if not self.modified else self.docname + " *"
-        win.tabSetLabel(self.docid, name)
+        self.setModified(True)
 
     def on_toolbar_editor_action(self, name):
         return None

@@ -120,7 +120,7 @@ class RTEditor(Editor):
         self.doc.setModified(modified)
         # NOTE: change also self.prevModified?
         self.prevModified = None
-        self.on_text_changed()
+        super(RTEditor, self).setModified(modified)
 
     def getBody(self):
         return self.doc.toHtml()
@@ -208,13 +208,7 @@ class RTEditor(Editor):
         if modified == self.prevModified:
             return
         self.prevModified = modified
-
-        win = self.win()
-        if not win:
-            return
-
-        name = self.docname if not modified else self.docname + " *"
-        win.tabSetLabel(self.docid, name)
+        self.setModified(modified)
 
     def on_contextmenu_event(self, event):
         pos = event.pos()
