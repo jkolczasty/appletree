@@ -24,8 +24,10 @@
 import os
 from appletree.gui.qt import QTVERSION, Qt, QtCore, loadQImageFix
 from appletree.helpers import T, genuid, messageDialog
+from appletree.gui.utils import ObjectCallbackWrapperRef
 from .editor import Editor, EDITORS
-
+from io import StringIO
+import csv
 
 class TableEditor(Editor):
     prevModified = False
@@ -42,11 +44,10 @@ class TableEditor(Editor):
         self.editor.setItemDelegate(Qt.QItemDelegate(self.editor))
         # self.editor.cursorPositionChanged.connect(self.on_cursor_possition_changed)
 
-        # docbody = self.project.doc.getDocumentBody(self.docid)
+        docbody = self.project.doc.getDocumentBody(self.docid)
+        self.putBody(docbody)
 
-        self.model.insertColumn(0)
-        self.model.insertColumn(1)
-        self.model.insertColumn(2)
+
         # font = Qt.QFont("Courier")
         # font.setPointSize(14)
         # self.editor.setFont(font)
@@ -69,7 +70,24 @@ class TableEditor(Editor):
         pass
 
     def getBody(self):
-        return None
+        ios = StringIO()
+        cs = csv.writer(ios)
+
+        for r in range(0, self.model.rowCount()):
+            row = []
+            for c in range(0, self.model.columnCount()):
+                row.append(self.model.data(self.model.index(r, c)))
+
+            cs.writerow(row)
+
+        return ios.getvalue()
+
+    def putBody(self, body):
+        ios = StringIO(body)
+        cs = csv.reader(ios)
+        for r in cs:
+            items = [Qt.QStandardItem(s) for s in r]
+            self.model.appendRow(items)
 
     def on_toolbar_editor_action(self, name):
         return None
@@ -77,29 +95,28 @@ class TableEditor(Editor):
     def on_contextmenu_event(self, point):
         menu = Qt.QMenu()
 
-        action = Qt.QAction(T("Append row above"), menu)
-        action.triggered.connect(self.on_contextmenu_insertrowabove)
-        menu.addAction(action)
+        if self.model.rowCount() > 0:
+            action = Qt.QAction(T("Insert row above"), menu)
+            action.triggered.connect(ObjectCallbackWrapperRef(self, 'insertRowInPosition', 0))
+            menu.addAction(action)
 
         action = Qt.QAction(T("Insert row below"), menu)
-        action.triggered.connect(self.on_contextmenu_insertrowbelow)
+        action.triggered.connect(ObjectCallbackWrapperRef(self, 'insertRowInPosition', 1))
+        menu.addAction(action)
+
+        if self.model.columnCount() > 0:
+            action = Qt.QAction(T("Insert column on the left"), menu)
+            action.triggered.connect(ObjectCallbackWrapperRef(self, 'insertColInPosition', 0))
+            menu.addAction(action)
+
+        action = Qt.QAction(T("Insert column on the right"), menu)
+        action.triggered.connect(ObjectCallbackWrapperRef(self, 'insertColInPosition', 1))
         menu.addAction(action)
 
         menu.exec_(self.editor.mapToGlobal(point))
         del menu
 
-    def on_contextmenu_insertrowabove(self):
-        if self.model.rowCount() == 0:
-            return self.on_contextmenu_insertrowbelow()
-
-        indexes = self.editor.selectedIndexes()
-        if not indexes:
-            return
-        index = indexes[0]
-
-        self.model.insertRow(index.row())
-
-    def on_contextmenu_insertrowbelow(self):
+    def insertRowInPosition(self, pos, *args):
         if self.model.rowCount() == 0:
             return self.model.insertRow(0)
 
@@ -108,7 +125,18 @@ class TableEditor(Editor):
             return
         index = indexes[0]
 
-        self.model.insertRow(index.row()+1)
+        self.model.insertRow(index.row()+pos)
+
+    def insertColInPosition(self, pos, *args):
+        if self.model.columnCount() == 0:
+            return self.model.insertColumn(0)
+
+        indexes = self.editor.selectedIndexes()
+        if not indexes:
+            return
+        index = indexes[0]
+
+        self.model.insertColumn(index.column() + pos)
 
 
 EDITORS['table'] = TableEditor
