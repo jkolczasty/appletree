@@ -21,9 +21,10 @@
 #
 
 import logging
+import os
 from weakref import ref
-from appletree.gui.qt import Qt
-from appletree.helpers import getIcon, getIconSvg
+from appletree.gui.qt import Qt, QTVERSION
+from appletree.helpers import getIcon, getIconSvg, messageDialog
 from collections import OrderedDict
 from .toolbar import Toolbar
 
@@ -34,6 +35,7 @@ class Editor(Qt.QWidget):
     toolbar = None
     prevModified = False
     has_images = False
+    can_print = False
 
     def __init__(self, win, project, docid, docname):
         Qt.QWidget.__init__(self)
@@ -109,7 +111,9 @@ class Editor(Qt.QWidget):
     def buildToolbar(self):
         self.toolbar = Toolbar(self)
 
-        self.toolbar.addButtonObjectAction(self, "save", getIconSvg('document-save'))
+        self.toolbar.addButtonObjectAction(self, "save", getIconSvg('document-save'), desc="Save")
+        if self.can_print:
+            self.toolbar.addButtonObjectAction(self, "export-to-pdf", getIcon('pdf'), desc="Export to pdf")
         self.buildToolbarLocal()
 
         win = self.win()
@@ -141,6 +145,9 @@ class Editor(Qt.QWidget):
 
         if self.project.doc.putDocumentBody(self.docid, body):
             self.setModified(False)
+
+    def isModified(self):
+        return None
 
     def setModified(self, modified):
         return None
@@ -179,7 +186,43 @@ class Editor(Qt.QWidget):
         return None
 
     def exportToPdf(self):
-        return None
+        if not self.can_print:
+            return
+
+        result = Qt.QFileDialog.getSaveFileName(self, "Export document to pdf", "", "PDF document (*.pdf)")
+        if QTVERSION == 4:
+            filename = result
+        else:
+            filename, selectedfilter = result
+
+        if not filename:
+            return
+
+        try:
+            if os.path.isfile(filename):
+                os.unlink(filename)
+        except Exception as e:
+            self.log.error("exportToPdf(): failed to unlink destination file: %s: %s", e.__class__.__name__, e)
+            messageDialog("PDF Export", "Failed to export as pdf.")
+            return
+
+        self.log.info("Export to PDF: %s", filename)
+        printer = Qt.QPrinter(Qt.QPrinter.PrinterResolution)
+        printer.setOutputFormat(Qt.QPrinter.PdfFormat)
+        printer.setPaperSize(Qt.QPrinter.A4)
+        printer.setOutputFileName(filename)
+        printer.setCreator("AppleTree")
+        printer.setPrintProgram("AppleTree")
+        printer.setFontEmbeddingEnabled(True)
+        printer.setDocName(self.docname)
+
+        self.print(printer)
+
+        messageDialog("PDF Export", "PDF saved as: " + Qt.QDir.toNativeSeparators(filename))
+        del printer
+
+    def print(self):
+        return
 
     def on_toolbar_action(self, action, *args):
         if action == 'save':
@@ -189,7 +232,10 @@ class Editor(Qt.QWidget):
         if action == 'insert-image':
             if not self.has_images:
                 return
-            self.on_toolbar_insert_image()
+            return self.on_toolbar_insert_image()
+
+        if action == 'export-to-pdf':
+            return self.exportToPdf()
 
     def on_toolbar_insert_image(self, *args):
         dialog = Qt.QFileDialog()

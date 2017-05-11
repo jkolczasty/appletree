@@ -25,7 +25,7 @@ from __future__ import print_function
 
 import logging
 from appletree.gui.qt import Qt, QtCore
-from appletree.helpers import getIcon
+from appletree.helpers import getIcon, getIconSvg
 from appletree.gui.toolbar import Toolbar
 from appletree.gui.utils import ObjectCallbackWrapperRef
 from appletree.project import Projects
@@ -92,8 +92,9 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
         # TODO: remove static code, move to dynamic build of toolbars and menus
         self.toolbar.add(
-            [dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
-             # dict(name='Save', icon='save', shortcut='CTRL+S', callback=self.on_toolbar_save),
+            [dict(name='Save', icon=getIconSvg('document-save'), shortcut='CTRL+S', callback=self.on_toolbar_save),
+             dict(name='Save', icon=getIconSvg('document-save-all'), shortcut=None, callback=self.on_toolbar_saveall),
+             dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
              dict(name='Add document', icon='document-add', shortcut='CTRL+SHIFT++',
                   callback=self.on_toolbar_document_add),
              ])
@@ -244,15 +245,11 @@ class AppleTreeMainWindow(Qt.QMainWindow):
     def on_toolbar_save(self):
         projectid, projectv = self.getCurrentProject()
         if not projectid:
-            self.log.warn("on_toolbar_document_add(): no current project")
+            self.log.warn("on_toolbar_save(): no current project")
             return None
 
-        projectv.on_toolbar_save()
+        projectv.save()
 
-    def on_toolbar_export_pdf(self):
-        docid, editor = self.getCurrentEditor()
-        if not editor:
-            self.log.warn("on_toolbar_export_pdf(): no current editor")
-            return None
-
-        editor.exportToPdf()
+    def on_toolbar_saveall(self):
+        for pv in self.projectsViews.values():
+            pv.saveall()

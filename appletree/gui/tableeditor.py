@@ -52,6 +52,9 @@ class TableEditor(Editor):
         super(TableEditor, self).destroy(*args)
         self.log.info("Destroy")
 
+    def isModified(self):
+        return True  # for know, we don't know if table was modified
+
     def setModified(self, modified):
         pass
 

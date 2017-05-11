@@ -31,6 +31,7 @@ class PTEditor(Editor):
     prevModified = False
     doc = None
     has_images = False
+    can_print = True
 
     def __init__(self, win, project, docid, docname):
         super(PTEditor, self).__init__(win, project, docid, docname)
@@ -65,6 +66,9 @@ class PTEditor(Editor):
             del self.doc
             self.doc = None
 
+    def isModified(self):
+        return self.doc.isModified()
+
     def setModified(self, modified):
         self.doc.setModified(modified)
         # NOTE: change also self.prevModified?
@@ -77,39 +81,10 @@ class PTEditor(Editor):
     def on_toolbar_editor_action(self, name):
         return None
 
-    def exportToPdf(self):
-        result = Qt.QFileDialog.getSaveFileName(self, "Export document to pdf", "", "PDF document (*.pdf)")
-        if QTVERSION == 4:
-            filename = result
-        else:
-            filename, selectedfilter = result
-
-        if not filename:
-            return
-
-        try:
-            if os.path.isfile(filename):
-                os.unlink(filename)
-        except Exception as e:
-            self.log.error("exportToPdf(): failed to unlink destination file: %s: %s", e.__class__.__name__, e)
-            messageDialog("PDF Export", "Failed to export as pdf.")
-            return
-
-        self.log.info("Export to PDF: %s", filename)
-        printer = Qt.QPrinter(Qt.QPrinter.PrinterResolution)
-        printer.setOutputFormat(Qt.QPrinter.PdfFormat)
-        printer.setPaperSize(Qt.QPrinter.A4)
-        printer.setOutputFileName(filename)
-        printer.setCreator("AppleTree")
-        printer.setPrintProgram("AppleTree")
-        printer.setFontEmbeddingEnabled(True)
-        printer.setDocName(self.docname)
+    def print(self, printer):
         self.doc.print(printer)
-        messageDialog("PDF Export", "PDF saved as: " + Qt.QDir.toNativeSeparators(filename))
-        del printer
 
     def on_text_changed(self, *args):
-        print("Modified!!!!", self.doc.isModified())
         modified = self.doc.isModified()
         if modified == self.prevModified:
             return

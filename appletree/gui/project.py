@@ -284,6 +284,35 @@ class ProjectView(Qt.QWidget):
         self.project.doc.clearImagesOld(docid, imageslocal)
         editor.setModified(False)
 
+    def saveall(self, *args):
+        for editor in self.editors.values():
+            docid = editor.docid
+            if not editor.isModified():
+                continue
+
+            self.log.info("save(): %s", docid)
+
+            # first getimages, couse this method can change body settings
+            images = editor.getImages()
+            imageslocal = []
+            body = editor.getBody()
+            # save images
+            for res in images:
+                if res.startswith('data:image/'):
+                    # ignore inline encoded images
+                    continue
+                url = Qt.QUrl()
+                url.setUrl(res)
+                resobj = editor.doc.resource(Qt.QTextDocument.ImageResource, url)
+
+                localname = self.project.doc.putImage(docid, res, resobj)
+                if localname:
+                    imageslocal.append(localname)
+
+            self.project.doc.putDocumentBody(docid, body)
+            self.project.doc.clearImagesOld(docid, imageslocal)
+            editor.setModified(False)
+
     def _cloneDocuments(self, srcuid, srcname, items, parent, srcprojectv):
         dstuid = genuid()
 
@@ -503,9 +532,6 @@ class ProjectView(Qt.QWidget):
             return
         self.addDocumentTree(docid, name, parent)
         self.saveDocumentsTree()
-
-    def on_toolbar_save(self):
-        self.save()
 
     def on_toolbar_editor_action(self, name, editor, *args):
         if name == 'save':
