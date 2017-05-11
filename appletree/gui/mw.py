@@ -93,7 +93,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         # TODO: remove static code, move to dynamic build of toolbars and menus
         self.toolbar.add(
             [dict(name='Save', icon=getIconSvg('document-save'), shortcut='CTRL+S', callback=self.on_toolbar_save),
-             dict(name='Save', icon=getIconSvg('document-save-all'), shortcut=None, callback=self.on_toolbar_saveall),
+             dict(name='Save all', icon=getIconSvg('document-save-all'), shortcut=None, callback=self.on_toolbar_saveall),
              dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
              dict(name='Add document', icon='document-add', shortcut='CTRL+SHIFT++',
                   callback=self.on_toolbar_document_add),
