@@ -30,6 +30,9 @@ from hashlib import sha1
 import os
 
 
+DOCUMENT_META_KEYS = ('type', )
+
+
 class BackendDocuments(object):
     name = "dummy"
     projectid = None

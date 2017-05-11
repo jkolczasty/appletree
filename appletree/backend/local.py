@@ -20,14 +20,15 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from .base import BackendDocuments, resourceNameToLocal
+from .base import BackendDocuments, resourceNameToLocal, DOCUMENT_META_KEYS
 import os.path
 from codecs import encode, decode
 import json
 from appletree.config import config
 from appletree.gui.qt import Qt
-from hashlib import sha1
 import shutil
+from configparser import ConfigParser
+import traceback
 
 
 class BackendDocumentsLocal(BackendDocuments):
@@ -59,6 +60,53 @@ class BackendDocumentsLocal(BackendDocuments):
         except Exception as e:
             self.log.error("setDocumentsTree(): Failed to read meta file: %s: %s", e.__class__.__name__, e)
             return None
+
+    def getDocumentMeta(self, docid):
+        path = os.path.join(self.docdir, docid)
+
+        fn = os.path.join(path, "document.meta.atdoc")
+        self.log.info("getDocumentMeta(): %s: %s", docid, fn)
+        meta = {}
+        try:
+            cfg = ConfigParser()
+            if not cfg.read(fn):
+                return meta
+
+            section = 'document'
+            if not cfg.has_section('document'):
+                return meta
+
+            for k in DOCUMENT_META_KEYS:
+                meta[k] = cfg.get(section, k, fallback=None)
+            return meta
+        except Exception as e:
+            self.log.error("getDocumentMeta(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+
+        return None
+
+    def putDocumentMeta(self, docid, meta):
+        path = os.path.join(self.docdir, docid)
+
+        if not os.path.exists(path) and not self._createDocumentFolder(path):
+            return
+
+        fn = os.path.join(path, "document.meta.atdoc")
+        self.log.info("backend:putDocumentMeta(): %s: %s", docid, fn)
+        try:
+            cfg = ConfigParser()
+            section = 'document'
+            cfg.add_section(section)
+
+            for k, v in meta.items():
+                if k not in DOCUMENT_META_KEYS:
+                    continue
+                cfg.set(section, k, str(v))
+            with open(fn, 'w') as f:
+                cfg.write(f)
+            return True
+        except Exception as e:
+            self.log.error("putDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+            traceback.print_exc()
 
     def getDocumentBody(self, docid):
         path = os.path.join(self.docdir, docid)

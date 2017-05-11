@@ -47,7 +47,7 @@ class ScreenShotPlugin(ATPlugin):
             if not win:
                 return
             docid, editor = win.getCurrentEditor()
-            if not docid or not editor:
+            if not docid or not editor or not editor.has_images:
                 return
         except:
             pass

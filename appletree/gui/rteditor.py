@@ -24,131 +24,54 @@ import logging
 from weakref import ref
 import os
 from appletree.gui.qt import QTVERSION, Qt, QtCore, loadQImageFix
-from appletree.helpers import getIcon, T, genuid, messageDialog
-from .texteditor import QTextEdit, QATTextDocument, ImageResizeDialog
+from appletree.helpers import T, genuid, messageDialog
+from .rteditorbase import QTextEdit, RTDocument, ImageResizeDialog
+from .editor import Editor, EDITORS
 
 
-class TabEditorText(Qt.QWidget):
+class RTEditor(Editor):
     prevModified = False
+    doc = None
+    has_images = False
 
     def __init__(self, win, project, docid, docname):
-        Qt.QWidget.__init__(self)
-        self.project = project
-        self.log = logging.getLogger("at.texteditor")
-        self.win = ref(win)
-        self.ignorechanges = False
-        # keep cursorpos for some deffered events
+        super(RTEditor, self).__init__(win, project, docid, docname)
         self.cursorpos = None
 
-        self.docid = docid
-        self.docname = docname
-        h1 = Qt.QVBoxLayout()
-        splitter = Qt.QSplitter()
-
-        self.setLayout(h1)
-        h1.addWidget(splitter)
-
+    def createEditorWidget(self):
         self.editor = QTextEdit(parent=self)
         self.editor.cursorPositionChanged.connect(self.on_cursor_possition_changed)
-        self.doc = QATTextDocument(self, docid, parent=self.editor)
+        self.doc = RTDocument(self, self.docid, parent=self.editor)
 
-        docbody = self.project.doc.getDocumentBody(docid)
+        docbody = self.project.doc.getDocumentBody(self.docid)
         self.doc.setHtml(docbody)
         self.editor.setDocument(self.doc)
 
         font = Qt.QFont("Courier")
         font.setPointSize(14)
         self.editor.setFont(font)
-
-        self.elements = None
-        self.elementsroot = None
-
-        # elements = Qt.QTreeWidget(self)
-        # # elements.setMaximumWidth(200)
-        # # elements.setFixedWidth(200)
-        # # elements.setMinimumWidth(100)
-        # elements.setBaseSize(100, 100)
-        # elements.adjustSize()
-        # # elements.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.MinimumExpanding)
-        #
-        # # elements.setFixedWidth(200)
-        # elements.setHeaderHidden(True)
-        # elementsroot = elements.invisibleRootItem()
-        #
-        # elementstype = Qt.QTreeWidgetItem(elementsroot, [T("Attachements"), "attachements"])
-        # elementstype.setIcon(0, getIcon("attachments"))
-        # elementstype.setExpanded(True)
-        #
-        # elementstype = Qt.QTreeWidgetItem(elementsroot, [T("Images"), "images"])
-        # elementstype.setIcon(0, getIcon("attachments"))
-        # elementstype.setExpanded(True)
-        #
-        # self.elements = elements
-        # self.elementsroot = elementsroot
-
-        # self._addElement("attachements", "somefile")
-
-        splitter.addWidget(self.editor)
-        # splitter.addWidget(self.elements)
-        splitter.setStretchFactor(0, 2)
-        # splitter.setStretchFactor(1, 0)
-
-        # TODO: should accessibleName be used?
-        self.setAccessibleName(docid)
-
         self.doc.setModified(False)
 
         # self.connect(self.editor, Qt.SIGNAL("textChanged()"), self.on_text_changed)
         self.editor.textChanged.connect(self.on_text_changed)
         self.editor.contextMenuEventSingal.connect(self.on_contextmenu_event)
 
-    def destroy(self, *args):
-        self.log.info("Destroy")
+        return self.editor
 
-        if self.editor:
-            self.editor.close()
-            self.editor.destroy()
-            del self.editor
-            self.editor = None
+    def destroy(self, *args):
+        super(RTEditor, self).destroy(*args)
+        self.log.info("Destroy")
 
         if self.doc:
             self.doc.clear()
             del self.doc
             self.doc = None
 
-        if self.elementsroot:
-            self.elementsroot = None
-        if self.elements:
-            self.elements.destroy()
-            del self.elements
-            self.elements = None
-
     def setModified(self, modified):
         self.doc.setModified(modified)
         # NOTE: change also self.prevModified?
         self.prevModified = None
         self.on_text_changed()
-
-    def _findElement(self, docid):
-        root = self.elementsroot
-        child_count = root.childCount()
-        for i in range(child_count):
-            item = root.child(i)
-            _docid = item.text(1)  # text at first (0) column
-            if _docid == docid:
-                return item
-        return None
-
-    def _addElement(self, _type, name):
-        if not _type:
-            return None
-
-        parent = self._findElement(_type) or self.elementsroot
-        if not parent:
-            return None
-
-        item = Qt.QTreeWidgetItem(parent, [name, "something", ])
-        item.setIcon(0, getIcon("attachment"))
 
     def getBody(self):
         return self.doc.toHtml()
@@ -177,9 +100,6 @@ class TabEditorText(Qt.QWidget):
 
             block = block.next()
         return images
-
-    def loadImageFromFile(self, path):
-        pass
 
     def insertImage(self, path, image=None):
         qurl = Qt.QUrl.fromLocalFile(path)
@@ -217,8 +137,7 @@ class TabEditorText(Qt.QWidget):
 
     def on_toolbar_editor_action(self, name):
         if name == 'hr':
-            self.log.info("Insert hr")
-            self.editor.insertHtml("<hr></hr>")
+            self.editor.insertHtml("<p><hr/></p>")
             return
         if name == 'format-justify-center':
             self.editor.setAlignment(QtCore.Qt.AlignCenter)
@@ -424,3 +343,6 @@ class TabEditorText(Qt.QWidget):
             win.fontselection.setCurrentFont(font)
         finally:
             self.ignorechanges = False
+
+
+EDITORS['richtext'] = RTEditor

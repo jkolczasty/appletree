@@ -29,7 +29,9 @@ from appletree.gui.qt import Qt, QtGui, QtCore
 from appletree.gui.toolbar import Toolbar
 from appletree.gui.utils import CurrentEditorDelegation
 from appletree.helpers import genuid, getIcon, getIconSvg, T, messageDialog
-from appletree.gui.tabtexteditor import TabEditorText
+from appletree.gui.editor import Editor
+from appletree.gui.rteditor import RTEditor
+from appletree.gui.pteditor import PTEditor
 from appletree.gui.treeview import QATTreeWidget
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
@@ -244,7 +246,13 @@ class ProjectView(Qt.QWidget):
             self.tabs.setCurrentIndex(idx)
             return
 
-        tabeditor = TabEditorText(self, self.project, docid, name)
+        meta = self.project.doc.getDocumentMeta(docid)
+        _type = meta.get('type') or 'richtext'
+        tabeditor = Editor.Editor(_type, self, self.project, docid, name)
+        if not tabeditor:
+            messageDialog("Unknown document type", "Unknown document type. Could not find suitable editor for it.", details=_type)
+            return
+
         self.editors[docid] = tabeditor
         self.tabs.addTab(tabeditor, name)
         c = self.tabs.count()
@@ -484,11 +492,23 @@ class ProjectView(Qt.QWidget):
             return
 
         parent = currentitem.text(1)
-        name, ok = Qt.QInputDialog.getText(self, 'New document', 'Enter new document name:')
-        if not ok:
+        dialog = NewDocumentDialog(self)
+        if not dialog.exec_():
             return
+
+        fields = dialog.fields
+        name = fields['name']
+        _type = fields['type']
+
+        meta = {'type': _type}
+
         backend = self.project.doc
         docid = genuid()
+
+        if not backend.putDocumentMeta(docid, meta):
+            self.log.error("Failed to push document meta to backend")
+            return
+
         if not backend.putDocumentBody(docid, ""):
             self.log.error("Failed to push document to backend")
             return
@@ -566,3 +586,71 @@ class NewProjectDialog(Qt.QDialog):
 
     def on_changed_name(self, newtext):
         self.fields['name'] = newtext
+
+
+class NewDocumentDialog(Qt.QDialog):
+    fields = None
+
+    def __init__(self, win):
+        super(NewDocumentDialog, self).__init__(win)
+
+        self.result = False
+        self.fields = dict()
+
+        self.setWindowTitle(T("New document"))
+        self.vbox = Qt.QVBoxLayout(self)
+
+        self.box = Qt.QGroupBox(self)
+        self.form = Qt.QFormLayout(self.box)
+
+        buttonbox = Qt.QDialogButtonBox()
+        buttonbox.setGeometry(Qt.QRect(150, 250, 341, 32))
+        buttonbox.setOrientation(QtCore.Qt.Horizontal)
+        buttonbox.setStandardButtons(Qt.QDialogButtonBox.Cancel | Qt.QDialogButtonBox.Ok)
+        # buttonbox.setWindowTitle(T("New project"))
+
+        self.vbox.addWidget(self.box)
+        self.vbox.addWidget(buttonbox)
+        self.vbox.setStretch(2, 0)
+
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        # self.setWindowModality(Qt.Q ApplicationModal)
+
+        buttonbox.accepted.connect(self.on_accept)
+        buttonbox.rejected.connect(self.on_reject)
+        # QtCore.QMetaObject.connectSlotsByName(Dialog)
+        self.adjustSize()
+        self.setMinimumWidth(600)
+        self.setSizePolicy(Qt.QSizePolicy.MinimumExpanding, Qt.QSizePolicy.MinimumExpanding)
+
+        inputwidget = Qt.QLineEdit(self)
+        inputwidget.textChanged.connect(self.on_changed_name)
+        self.form.addRow(T("Document name"), inputwidget)
+        inputwidget.setFocus()
+
+        inputwidget = Qt.QComboBox(self)
+        inputwidget.addItems(Editor.EditorTypesList())
+        inputwidget.currentTextChanged.connect(self.on_changed_type)
+        self.fields['type'] = inputwidget.currentText()
+        self.form.addRow(T("Document type"), inputwidget)
+
+        self.adjustSize()
+
+    def exec_(self):
+        super(NewDocumentDialog, self).exec_()
+        # del self.fields
+        return self.result
+
+    def on_accept(self):
+        self.result = True
+        self.close()
+
+    def on_reject(self):
+        self.result = False
+        self.close()
+
+    def on_changed_name(self, newtext):
+        self.fields['name'] = newtext
+
+    def on_changed_type(self, newtype):
+        self.fields['type'] = newtype

@@ -256,9 +256,9 @@ class QTextEdit(Qt.QTextEdit):
         pass
 
 
-class QATTextDocument(Qt.QTextDocument):
+class RTDocument(Qt.QTextDocument):
     def __init__(self, editor, docid, *args, **kwargs):
-        super(QATTextDocument, self).__init__(*args, **kwargs)
+        super(RTDocument, self).__init__(*args, **kwargs)
         self.log = logging.getLogger("at.document." + docid)
         self.editor = editor
         self.docid = docid
@@ -286,7 +286,7 @@ class QATTextDocument(Qt.QTextDocument):
     def loadResource(self, p_int, _qurl):
         url = _qurl.toString()
         if url.startswith('data:image/'):
-            return super(QATTextDocument, self).loadResource(p_int, _qurl)
+            return super(RTDocument, self).loadResource(p_int, _qurl)
 
         self.editor.log.info("loadResource(): %s", url)
         scheme = _qurl.scheme()
@@ -328,8 +328,9 @@ class QATTextDocument(Qt.QTextDocument):
                 except Exception as e:
                     self.log.error("Failed to load image: %s: %s", e.__class__.__name__, e)
 
-        res = super(QATTextDocument, self).loadResource(p_int, _qurl)
+        res = super(RTDocument, self).loadResource(p_int, _qurl)
         if res:
             return res
 
         return self.loadResourceMissing(_qurl)
+
