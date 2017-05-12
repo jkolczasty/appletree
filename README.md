@@ -20,7 +20,9 @@ Features (to be implemented before first offcial stable realase):
     - Network document share (push your document to other AppleTree instance in network neighborhood with discovery protocol)
 - Different types of documents
     - (+) RichText
-    - PlainText with syntax hilighting
+    - (+) PlainText with syntax hilighting
+    - Code with syntax hilighting
+- Draft documents (with autosaving)
 - (+) Plugins
     - (+) Screenshot Plugin - allow inserting screenshot directly to the document
 - Attachments - allows to add attachments to the document (binary format, any file can be attached)
@@ -29,7 +31,7 @@ Features to be implemented in next versions:
 - Network storage backends (like WebDav, etc)
 - AppleTree Server Backend (centralized repository with ACLs for group work)
 - Different types of documents
-    - GridData (simple Grid/Table data)
+    - (~+) GridData (simple Grid/Table data)
     - Tasks (table-like list with tasks to be done)
 - Backup feature
 - Import/Export to other AT instance

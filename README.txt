@@ -8,3 +8,5 @@ Flat Icons http://www.flaticon.com:
     designed by Madebyoliver from Flaticon http://www.flaticon.com/packs/interaction-assets-2
 The Breeze Icon Theme: LGPL License https://github.com/KDE/breeze-icons
 The Oxygen Icon Theme: LGPL License https://github.com/KDE/oxygen-icons
+
+Apple Tree photo: CC BY 4.0 Int https://torange.biz/36127.html
