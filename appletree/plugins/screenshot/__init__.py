@@ -22,6 +22,7 @@
 
 from appletree.plugins.base import ATPlugin
 from appletree.plugins.helpers import T
+from appletree.gui.qt import QtCore
 import tempfile
 import shlex
 import subprocess
@@ -54,12 +55,16 @@ class ScreenShotPlugin(ATPlugin):
             return
 
         filename = None
+        win = self.win()
         try:
             h, filename = tempfile.mkstemp(prefix='tmpctscreenshot-', suffix='.png')
             os.close(h)
             fargs = dict(tempfilename=filename)
             args = self.config['screenshot_exec'].format(**fargs)
             args = shlex.split(args)
+            if win:
+                win.setWindowState(QtCore.Qt.WindowMinimized)
+
             subprocess.check_call(args)
             if not os.path.getsize(filename):
                 os.unlink(filename)
@@ -69,6 +74,9 @@ class ScreenShotPlugin(ATPlugin):
             if filename:
                 os.unlink(filename)
             return
+        finally:
+            if win:
+                win.setWindowState(QtCore.Qt.WindowActive)
 
         try:
             editor.insertImage(filename)
