@@ -133,6 +133,7 @@ class Editor(Qt.QWidget):
             if not messageDialog("Close document: unsaved changes",
                                  "You are about close document with unsaved changes. Are you sure?", OkCancel=True):
                 return False
+            self.project.doc.dropDocumentBodyDraft(self.docid)
         return True
 
     def destroy(self, *args):
