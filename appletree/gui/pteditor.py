@@ -42,15 +42,7 @@ class PTEditor(Editor):
         # self.editor.cursorPositionChanged.connect(self.on_cursor_possition_changed)
         # self.doc = Qt.QTextDocument(self)
 
-        docbody = self.project.doc.getDocumentBodyDraft(self.docid)
-        if docbody is None:
-            docbody = self.project.doc.getDocumentBody(self.docid)
-            draft = False
-        else:
-            draft = True
-        self.doc = self.editor.document()
-        self.doc.setPlainText(docbody)
-        self.setModified(draft)
+        self.load(draft=True)
 
         font = Qt.QFont("Courier")
         font.setPointSize(14)
@@ -61,6 +53,20 @@ class PTEditor(Editor):
         # self.editor.contextMenuEventSingal.connect(self.on_contextmenu_event)
 
         return self.editor
+
+    def load(self, draft=False):
+        docbody = None
+        if draft:
+            docbody = self.project.doc.getDocumentBodyDraft(self.docid)
+
+        if docbody is None:
+            docbody = self.project.doc.getDocumentBody(self.docid)
+            draft = False
+        else:
+            draft = True
+        self.doc = self.editor.document()
+        self.doc.setPlainText(docbody)
+        self.setModified(draft)
 
     def destroy(self, *args):
         super(PTEditor, self).destroy(*args)

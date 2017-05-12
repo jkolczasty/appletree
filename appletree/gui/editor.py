@@ -112,6 +112,8 @@ class Editor(Qt.QWidget):
         self.toolbar = Toolbar(self)
 
         self.toolbar.addButtonObjectAction(self, "save", getIconSvg('document-save'), desc="Save")
+        self.toolbar.addButtonObjectAction(self, "drop-draft", getIcon('document-drop-draft'),
+                                           desc="Drop draft, restore saved document")
         if self.can_print:
             self.toolbar.addButtonObjectAction(self, "export-to-pdf", getIcon('pdf'), desc="Export to pdf")
         self.buildToolbarLocal()
@@ -130,10 +132,7 @@ class Editor(Qt.QWidget):
 
     def closeRequest(self):
         if self.isModified():
-            if not messageDialog("Close document: unsaved changes",
-                                 "You are about close document with unsaved changes. Are you sure?", OkCancel=True):
-                return False
-            self.project.doc.dropDocumentBodyDraft(self.docid)
+            self.savedraft()
         return True
 
     def destroy(self, *args):
@@ -255,6 +254,19 @@ class Editor(Qt.QWidget):
 
         if action == 'export-to-pdf':
             return self.exportToPdf()
+
+        if action == 'drop-draft':
+            if not self.isModified():
+                return
+            if not messageDialog("Restore saved document",
+                                 "You are about to drop unsaved changes and restore saved document. Are you sure?",
+                                 OkCancel=True):
+                return
+
+            return self.load(draft=False)
+
+    def load(self, draft=False):
+        pass
 
     def on_toolbar_insert_image(self, *args):
         dialog = Qt.QFileDialog()

@@ -43,17 +43,9 @@ class RTEditor(Editor):
         self.editor = QTextEdit(parent=self)
         self.editor.cursorPositionChanged.connect(self.on_cursor_possition_changed)
         self.doc = RTDocument(self, self.docid, parent=self.editor)
-
-        docbody = self.project.doc.getDocumentBodyDraft(self.docid)
-        if docbody is None:
-            docbody = self.project.doc.getDocumentBody(self.docid)
-            draft = False
-        else:
-            draft = True
-
-        self.doc.setHtml(docbody)
         self.editor.setDocument(self.doc)
-        self.setModified(draft)
+
+        self.load(draft=True)
 
         font = Qt.QFont("Courier")
         font.setPointSize(14)
@@ -93,6 +85,20 @@ class RTEditor(Editor):
             self.doc.clear()
             del self.doc
             self.doc = None
+
+    def load(self, draft=False):
+        docbody = None
+        if draft:
+            docbody = self.project.doc.getDocumentBodyDraft(self.docid)
+
+        if docbody is None:
+            docbody = self.project.doc.getDocumentBody(self.docid)
+            draft = False
+        else:
+            draft = True
+
+        self.doc.setHtml(docbody)
+        self.setModified(draft)
 
     def save(self, *args):
         self.log.info("save()")
