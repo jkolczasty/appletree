@@ -44,14 +44,20 @@ class RTEditor(Editor):
         self.editor.cursorPositionChanged.connect(self.on_cursor_possition_changed)
         self.doc = RTDocument(self, self.docid, parent=self.editor)
 
-        docbody = self.project.doc.getDocumentBody(self.docid)
+        docbody = self.project.doc.getDocumentBodyDraft(self.docid)
+        if docbody is None:
+            docbody = self.project.doc.getDocumentBody(self.docid)
+            draft = False
+        else:
+            draft = True
+
         self.doc.setHtml(docbody)
         self.editor.setDocument(self.doc)
+        self.setModified(draft)
 
         font = Qt.QFont("Courier")
         font.setPointSize(14)
         self.editor.setFont(font)
-        self.doc.setModified(False)
 
         # self.connect(self.editor, Qt.SIGNAL("textChanged()"), self.on_text_changed)
         self.editor.textChanged.connect(self.on_text_changed)
@@ -112,6 +118,28 @@ class RTEditor(Editor):
             self.setModified(False)
 
         self.project.doc.clearImagesOld(self.docid, imageslocal)
+
+    def saveDraft(self):
+        self.log.info("saveDraft()")
+
+        # first getimages, couse this method can change body settings
+        images = self.getImages()
+        imageslocal = []
+        body = self.getBody()
+        # save images
+        for res in images:
+            if res.startswith('data:image/'):
+                # ignore inline encoded images
+                continue
+            url = Qt.QUrl()
+            url.setUrl(res)
+            resobj = self.doc.resource(Qt.QTextDocument.ImageResource, url)
+
+            localname = self.project.doc.putImage(self.docid, res, resobj)
+            if localname:
+                imageslocal.append(localname)
+
+        self.project.doc.putDocumentBodyDraft(self.docid, body)
 
     def isModified(self):
         return self.doc.isModified()

@@ -153,6 +153,13 @@ class Editor(Qt.QWidget):
         if self.project.doc.putDocumentBody(self.docid, body):
             self.setModified(False)
 
+    def savedraft(self, *args):
+        self.log.info("saveDraft()")
+
+        body = self.getBody()
+
+        self.project.doc.putDocumentBodyDraft(self.docid, body)
+
     def isModified(self):
         return None
 

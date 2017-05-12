@@ -42,8 +42,15 @@ class TableEditor(Editor):
         self.editor.setModel(self.model)
         self.editor.setItemDelegate(Qt.QItemDelegate(self.editor))
 
-        docbody = self.project.doc.getDocumentBody(self.docid)
+        docbody = self.project.doc.getDocumentBodyDraft(self.docid)
+        if docbody is None:
+            docbody = self.project.doc.getDocumentBody(self.docid)
+            draft = False
+        else:
+            draft = True
+
         self.putBody(docbody)
+        self.setModified(draft)
 
         self.editor.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.editor.customContextMenuRequested.connect(self.on_contextmenu_event)

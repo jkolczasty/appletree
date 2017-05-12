@@ -261,6 +261,8 @@ class ProjectView(Qt.QWidget):
 
         self.editors[docid] = tabeditor
         self.tabs.addTab(tabeditor, name)
+        tabeditor.setModified(tabeditor.isModified())
+
         c = self.tabs.count()
         if self.tabs.count() == 1:
             self.tabs.show()
@@ -310,37 +312,30 @@ class ProjectView(Qt.QWidget):
                 continue
 
             self.log.info("save(): %s", docid)
+            editor.save()
 
-            # first getimages, couse this method can change body settings
-            images = editor.getImages()
-            imageslocal = []
-            body = editor.getBody()
-            # save images
-            for res in images:
-                if res.startswith('data:image/'):
-                    # ignore inline encoded images
-                    continue
-                url = Qt.QUrl()
-                url.setUrl(res)
-                resobj = editor.doc.resource(Qt.QTextDocument.ImageResource, url)
+    def savedrafts(self):
+        for editor in self.editors.values():
+            docid = editor.docid
+            if not editor.isModified():
+                continue
 
-                localname = self.project.doc.putImage(docid, res, resobj)
-                if localname:
-                    imageslocal.append(localname)
-
-            self.project.doc.putDocumentBody(docid, body)
-            self.project.doc.clearImagesOld(docid, imageslocal)
-            editor.setModified(False)
+            self.log.info("savedrafts(): %s", docid)
+            editor.savedraft()
 
     def _cloneDocuments(self, srcuid, srcname, items, parent, srcprojectv):
         dstuid = genuid()
 
         docmeta = srcprojectv.project.doc.getDocumentMeta(srcuid)
         docbody = srcprojectv.project.doc.getDocumentBody(srcuid)
+        docbodydraft = srcprojectv.project.doc.getDocumentBodyDraft(srcuid)
         images = srcprojectv.project.doc.getImages(srcuid)
 
         self.project.doc.putDocumentMeta(dstuid, docmeta)
         self.project.doc.putDocumentBody(dstuid, docbody)
+        if docbodydraft is not None:
+            self.project.doc.putDocumentBodyDraft(dstuid, docbodydraft)
+
         for image in images:
             __image = srcprojectv.project.doc.getImage(srcuid, image)
             self.project.doc.putImage(dstuid, image, __image)

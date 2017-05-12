@@ -65,4 +65,4 @@ def messageDialog(title, message, details=None, OkCancel=False, icon=None):
     else:
         msg.setStandardButtons(Qt.QMessageBox.Ok)
 
-    return msg.exec_()== Qt.QMessageBox.Ok
+    return msg.exec_() == Qt.QMessageBox.Ok

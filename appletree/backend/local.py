@@ -112,8 +112,12 @@ class BackendDocumentsLocal(BackendDocuments):
         path = os.path.join(self.docdir, docid)
 
         fn = os.path.join(path, "document.atdoc")
+
         self.log.info("getDocumentBody(): %s: %s", docid, fn)
         try:
+            if not os.path.isfile(fn):
+                return None
+
             with open(fn, 'rb') as f:
                 content = f.read()
 
@@ -122,6 +126,38 @@ class BackendDocumentsLocal(BackendDocuments):
             self.log.error("getDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
 
         return None
+
+    def getDocumentBodyDraft(self, docid):
+        path = os.path.join(self.docdir, docid)
+
+        fn = os.path.join(path, "document.draft.atdoc")
+
+        self.log.info("getDocumentBodyDraft(): %s: %s", docid, fn)
+        try:
+            if not os.path.isfile(fn):
+                return None
+
+            with open(fn, 'rb') as f:
+                content = f.read()
+
+            return decode(content, 'utf8')
+        except Exception as e:
+            self.log.error("getDocumentBodyDraft(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+
+        return None
+
+    def dropDocumentBodyDraft(self, docid):
+        path = os.path.join(self.docdir, docid)
+
+        fn = os.path.join(path, "document.draft.atdoc")
+        if not os.path.isfile(fn):
+            return None
+        try:
+            os.unlink(fn)
+        except:
+            pass
+
+        self.log.info("dropDocumentBodyDraft(): %s: %s", docid, fn)
 
     def getImages(self, docid):
         path = os.path.join(self.docdir, docid, "resources", "images")
@@ -142,20 +178,36 @@ class BackendDocumentsLocal(BackendDocuments):
             self.log.error("_createDocumentFolder(): %s: %s", e.__class__.__name__, e)
             return None
 
-    def putDocumentBody(self, docid, body):
+    def putDocumentBody(self, docid, body, dropdraft=True):
         path = os.path.join(self.docdir, docid)
 
         if not os.path.exists(path) and not self._createDocumentFolder(path):
             return
 
         fn = os.path.join(path, "document.atdoc")
+
         self.log.info("backend:putDocumentBody(): %s: %s", docid, fn)
+        try:
+            with open(fn, 'wb') as f:
+                f.write(encode(body, "utf-8"))
+
+            if dropdraft:
+                self.dropDocumentBodyDraft(docid)
+            return True
+        except Exception as e:
+            self.log.error("putDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+
+    def putDocumentBodyDraft(self, docid, body):
+        path = os.path.join(self.docdir, docid)
+
+        fn = os.path.join(path, "document.draft.atdoc")
+        self.log.info("backend:putDocumentBodyDraft(): %s: %s", docid, fn)
         try:
             with open(fn, 'wb') as f:
                 f.write(encode(body, "utf-8"))
             return True
         except Exception as e:
-            self.log.error("putDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+            self.log.error("putDocumentBodyDraft(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
 
     def removeDocument(self, docid):
         path = os.path.join(self.docdir, docid)

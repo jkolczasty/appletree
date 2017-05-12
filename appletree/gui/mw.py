@@ -183,22 +183,25 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         pass
 
     def closeEvent(self, event):
-        event.ignore()
+        # event.ignore()
+        #
+        # modifiedp = 0
+        # modified = 0
+        # for pv in self.projectsViews.values():
+        #     _modified = pv.isModified()
+        #     if _modified:
+        #         modifiedp += 1
+        #
+        #     modified += _modified
+        #
+        # if modified:
+        #     if not messageDialog("Close project: unsaved changes",
+        #                          "You are about close project with unsaved changes. Are you sure?",
+        #                          details="Unsaved projects: {0}\nUnsaved documents: {1}".format(modifiedp, modified), OkCancel=True):
+        #         return
 
-        modifiedp = 0
-        modified = 0
         for pv in self.projectsViews.values():
-            _modified = pv.isModified()
-            if _modified:
-                modifiedp += 1
-
-            modified += _modified
-
-        if modified:
-            if not messageDialog("Close project: unsaved changes",
-                                 "You are about close project with unsaved changes. Are you sure?",
-                                 details="Unsaved projects: {0}\nUnsaved documents: {1}".format(modifiedp, modified), OkCancel=True):
-                return
+            pv.savedrafts()
 
         event.accept()
 

@@ -42,14 +42,19 @@ class PTEditor(Editor):
         # self.editor.cursorPositionChanged.connect(self.on_cursor_possition_changed)
         # self.doc = Qt.QTextDocument(self)
 
-        docbody = self.project.doc.getDocumentBody(self.docid)
+        docbody = self.project.doc.getDocumentBodyDraft(self.docid)
+        if docbody is None:
+            docbody = self.project.doc.getDocumentBody(self.docid)
+            draft = False
+        else:
+            draft = True
         self.doc = self.editor.document()
         self.doc.setPlainText(docbody)
+        self.setModified(draft)
 
         font = Qt.QFont("Courier")
         font.setPointSize(14)
         self.editor.setFont(font)
-        self.doc.setModified(False)
 
         # self.connect(self.editor, Qt.SIGNAL("textChanged()"), self.on_text_changed)
         self.editor.textChanged.connect(self.on_text_changed)
