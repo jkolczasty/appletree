@@ -23,7 +23,7 @@
 import os
 from appletree.gui.qt import QTVERSION, Qt, QtCore, loadQImageFix
 from appletree.helpers import T, genuid, messageDialog, getIcon
-from .rteditorbase import QTextEdit, RTDocument, ImageResizeDialog
+from .rteditorbase import QTextEdit, RTDocument, ImageResizeDialog, ImageViewDialog
 from .editor import Editor, EDITORS
 
 
@@ -259,6 +259,10 @@ class RTEditor(Editor):
         charformat = cursor.charFormat()
         if charformat.isImageFormat():
             # TODO: allow plugins to modify context menus
+            action = Qt.QAction(T("View image in original size"), menu)
+            action.triggered.connect(self.on_contextmenu_imageview)
+            menu.addAction(action)
+
             action = Qt.QAction(T("Resize image"), menu)
             action.triggered.connect(self.on_contextmenu_imageresize)
             menu.addAction(action)
@@ -278,6 +282,22 @@ class RTEditor(Editor):
         menu.exec_(event.globalPos())
         del menu
         self.cursorpos = None
+
+    def on_contextmenu_imageview(self, *args):
+        cursor = self.editor.cursorForPosition(self.cursorpos)
+        if not cursor:
+            return
+
+        charformat = cursor.charFormat()
+        if not charformat or not charformat.isImageFormat():
+            return
+
+        _format = charformat.toImageFormat()
+
+        image = self.doc.resource(Qt.QTextDocument.ImageResource, Qt.QUrl(_format.name()))
+
+        view = ImageViewDialog(self, "Image view", image)
+        view.exec_()
 
     def on_contextmenu_imageresize(self, *args):
         cursor = self.editor.cursorForPosition(self.cursorpos)

@@ -126,6 +126,29 @@ class ImageResizeDialog(Qt.QDialog):
         self.keepaspect = newvalue
 
 
+class ImageViewDialog(Qt.QDialog):
+    def __init__(self, win, title, image):
+        super(ImageViewDialog, self).__init__(win)
+        self.setWindowTitle(title)
+        vbox = Qt.QVBoxLayout(self)
+        scrollarea = Qt.QScrollArea(self)
+        scrollarea.setWidgetResizable(True)
+
+        label = Qt.QLabel(self)
+        label.setAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignHCenter)
+        if image.__class__.__name__ == 'QImage':
+            pixmap = Qt.QPixmap()
+            pixmap.fromImage(image)
+        else:
+            pixmap = image
+
+        label.setPixmap(pixmap)
+
+        scrollarea.setWidget(label)
+        vbox.addWidget(scrollarea)
+        self.setSizePolicy(Qt.QSizePolicy.MinimumExpanding, Qt.QSizePolicy.MinimumExpanding)
+
+
 class QTextEdit(Qt.QTextEdit):
     contextMenuEventSingal = Qt.pyqtSignal(object)
     linkClicked = Qt.pyqtSignal(object)
