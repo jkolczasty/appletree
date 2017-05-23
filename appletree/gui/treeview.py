@@ -22,13 +22,14 @@
 
 from weakref import ref
 from appletree.gui.qt import Qt
-from appletree.helpers import T, messageDialog
+from appletree.helpers import T
 
-
+from appletree.gui.consts import TREE_COLUMN_UID, TREE_COLUMN_NAME, TREE_COLUMN_TAGS
 _CLONE_ITEM = None
 
 
 class QATTreeWidget(Qt.QTreeWidget):
+# class QATTreeWidget(Qt.QTreeView):
     menu = None
 
     def __init__(self, win, parent=None):
@@ -41,6 +42,10 @@ class QATTreeWidget(Qt.QTreeWidget):
         # TODO: allow plugins to modify context menus
         action = Qt.QAction(T("Copy subtree"), self.menu)
         action.triggered.connect(self.on_contextmenu_copy)
+        self.menu.addAction(action)
+
+        action = Qt.QAction(T("Tag: important"), self.menu)
+        action.triggered.connect(self.on_contextmenu_tag_important)
         self.menu.addAction(action)
 
         action = Qt.QAction(T("Paste subtree"), self.menu)
@@ -83,8 +88,8 @@ class QATTreeWidget(Qt.QTreeWidget):
         if not items:
             return
         item = items[0]
-        name = item.text(0)
-        uid = item.text(1)
+        name = item.text(TREE_COLUMN_NAME)
+        uid = item.text(TREE_COLUMN_UID)
         _CLONE_ITEM = (projectid, uid, name)
 
     def on_contextmenu_paste(self):
@@ -98,7 +103,7 @@ class QATTreeWidget(Qt.QTreeWidget):
         items = self.selectedItems()
         if items:
             item = items[0]
-            uid = item.text(1)
+            uid = item.text(TREE_COLUMN_UID)
             if uid == _CLONE_ITEM[1]:
                 # can not clone to the same place
                 return
@@ -117,6 +122,27 @@ class QATTreeWidget(Qt.QTreeWidget):
         if not items:
             return
         item = items[0]
-        uid = item.text(1)
+        uid = item.text(TREE_COLUMN_UID)
 
         win.removeDocument(uid)
+
+    def on_contextmenu_tag_important(self):
+        tag = 'important'
+
+        win = self.win()
+        if not win:
+            return
+
+        items = self.selectedItems()
+        if not items:
+            return
+        item = items[0]
+        tags = [t.strip() for t in item.text(TREE_COLUMN_TAGS).split(",") if t]
+        if tag in tags:
+            tags.remove(tag)
+        else:
+            tags.append(tag)
+
+        print("NEW TAGS:", tags)
+        item.setText(TREE_COLUMN_TAGS, ",".join(sorted(tags)))
+        win.tagDocuemntTree(item)

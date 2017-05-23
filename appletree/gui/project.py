@@ -27,7 +27,7 @@ import logging
 from weakref import ref
 from appletree.gui.qt import Qt, QtCore
 from appletree.gui.toolbar import Toolbar
-from appletree.helpers import genuid, getIcon, T, messageDialog
+from appletree.helpers import genuid, getIcon, getIconPixmap, getIconImage, T, messageDialog
 from appletree.gui.editor import Editor
 
 from appletree.gui.rteditor import RTEditor
@@ -35,8 +35,8 @@ from appletree.gui.pteditor import PTEditor
 from appletree.gui.tableeditor import TableEditor
 
 from appletree.gui.treeview import QATTreeWidget
-
-TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
+from appletree.gui.consts import TREE_COLUMN_NAME, TREE_COLUMN_UID, TREE_COLUMN_COUNT, TREE_COLUMN_ICON, \
+    TREE_ITEM_FLAGS, TREE_COLUMN_ICON_WIDTH, TREE_COLUMN_TAGS
 
 
 class ProjectView(Qt.QWidget):
@@ -70,9 +70,10 @@ class ProjectView(Qt.QWidget):
         splitter.setStretchFactor(1, 1)
         splitter.setSizePolicy(Qt.QSizePolicy.Expanding, Qt.QSizePolicy.Expanding)
 
-        tree.setColumnCount(3)
-        tree.setColumnHidden(1, True)
-        tree.setColumnHidden(2, True)
+        tree.setColumnCount(TREE_COLUMN_COUNT)
+        tree.setColumnHidden(TREE_COLUMN_UID, True)
+        tree.setColumnHidden(TREE_COLUMN_TAGS, True)
+        tree.setColumnWidth(TREE_COLUMN_ICON, TREE_COLUMN_ICON_WIDTH)
 
         self.setLayout(box)
         self.buildToolbar()
@@ -80,7 +81,8 @@ class ProjectView(Qt.QWidget):
         box.addWidget(self.toolbar)
         box.addWidget(splitter)
 
-        tree.setHeaderHidden(True)
+        tree.setHeaderHidden(False)
+        tree.resizeColumnToContents(TREE_COLUMN_ICON)
         tree.setDragDropMode(Qt.QAbstractItemView.InternalMove)
         tree.setAcceptDrops(True)
         tree.setAutoScroll(True)
@@ -179,8 +181,8 @@ class ProjectView(Qt.QWidget):
         for i in range(0, root.childCount()):
             child = root.child(i)
             # name, docbackend, docid
-            docname = child.text(0)
-            docid = child.text(1)
+            docname = child.text(TREE_COLUMN_NAME)
+            docid = child.text(TREE_COLUMN_UID)
             children, childrencount = self.getDocumentTree(child)
             count += childrencount
             tree.append((docid, docname, children))
@@ -199,14 +201,14 @@ class ProjectView(Qt.QWidget):
         backend.setDocumentsTree(tree)
 
     def treeFindDocument(self, docid):
-        items = self.tree.findItems(docid, QtCore.Qt.MatchFixedString | QtCore.Qt.MatchRecursive, 1)
+        items = self.tree.findItems(docid, QtCore.Qt.MatchFixedString | QtCore.Qt.MatchRecursive, TREE_COLUMN_UID)
         if items:
             return items[0]
 
         return None
 
     def treeRemoveDocument(self, docid):
-        items = self.tree.findItems(docid, QtCore.Qt.MatchFixedString | QtCore.Qt.MatchRecursive, 1)
+        items = self.tree.findItems(docid, QtCore.Qt.MatchFixedString | QtCore.Qt.MatchRecursive, TREE_COLUMN_UID)
         if items:
             item = items[0]
             for child in item.takeChildren():
@@ -217,18 +219,60 @@ class ProjectView(Qt.QWidget):
             index = parent.indexOfChild(item)
             parent.takeChild(index)
 
-    def addDocumentTree(self, docid, name, parent):
+    def addDocumentTree(self, docid, name, parent, tags=""):
         if parent:
             # TODO: find parent in tree
             parent = self.treeFindDocument(parent)
         else:
             parent = self.tree.invisibleRootItem()
 
-        item = Qt.QTreeWidgetItem(parent, [name, docid, "D"])
-        item.setIcon(0, getIcon("doc"))
+        columns = [None] * TREE_COLUMN_COUNT
+        columns[TREE_COLUMN_NAME] = name
+        columns[TREE_COLUMN_UID] = docid
+
+        item = Qt.QTreeWidgetItem(parent, columns)
+        # item.setFirstColumnSpanned(True)
+        item.setText(TREE_COLUMN_NAME, name)
+        item.setText(TREE_COLUMN_UID, docid)
+        item.setText(TREE_COLUMN_TAGS, tags)
+        item.setIcon(TREE_COLUMN_NAME, getIcon("doc"))
         item.setExpanded(True)
         item.setFlags(TREE_ITEM_FLAGS)
+
+        self.tagDocuemntTree(item)
+
+        item.setTextAlignment(TREE_COLUMN_ICON, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        self.tree.resizeColumnToContents(TREE_COLUMN_NAME)
+        self.tree.resizeColumnToContents(TREE_COLUMN_ICON)
         return item
+
+    def tagDocuemntTree(self, item):
+        widget = self.tree.itemWidget(item, TREE_COLUMN_ICON)
+        if widget:
+            widget.destroy()
+
+        icons = Qt.QWidget(self.tree)
+        layout = Qt.QHBoxLayout()
+        icons.setLayout(layout)
+
+        tags = item.text(TREE_COLUMN_TAGS)
+        if tags:
+            tags = [t.strip() for t in item.text(TREE_COLUMN_TAGS).split(",") if t]
+        else:
+            tags = []
+
+        for tag in tags:
+            label = Qt.QLabel()
+            pixmap = getIconPixmap("icon-tag-{0}".format(tag))
+            if not pixmap or pixmap.isNull():
+                self.log.error("Missing tag icon: %s", tag)
+                continue
+            label.setPixmap(pixmap)
+            layout.addWidget(label)
+        icons.setLayout(layout)
+
+        self.tree.setItemWidget(item, TREE_COLUMN_ICON, icons)
+        self.tree.resizeColumnToContents(TREE_COLUMN_ICON)
 
     def getCurrentEditor(self):
         index = self.tabs.currentIndex()
@@ -364,7 +408,7 @@ class ProjectView(Qt.QWidget):
         srcitem = srcprojectv.treeFindDocument(srcdocumentid)
         if not srcitem:
             return
-        srcname = srcitem.text(0)
+        srcname = srcitem.text(TREE_COLUMN_NAME)
 
         try:
             self.treeready = False
@@ -405,8 +449,8 @@ class ProjectView(Qt.QWidget):
         if not item:
             return
 
-        name = item.text(0)
-        uid = item.text(1)
+        name = item.text(TREE_COLUMN_NAME)
+        uid = item.text(TREE_COLUMN_UID)
 
         # get subtree elements and close tabs if opened before removing documents
         tree, count = self.getDocumentTree(docid=uid)
@@ -431,22 +475,18 @@ class ProjectView(Qt.QWidget):
             return
         item = items[0]
 
-        _type = item.text(2)
-        if _type != 'D':
-            return
-
-        docid = item.text(1)
+        docid = item.text(TREE_COLUMN_UID)
         if not docid:
             return
-        docname = item.text(0)
+        docname = item.text(TREE_COLUMN_NAME)
         self.open(docid, docname)
 
     def on_tree_item_changed(self, item):
         if not self.treeready:
             return
         self.log.info("on_tree_item_changed(): %s")
-        name = item.text(0)
-        uid = item.text(1)
+        name = item.text(TREE_COLUMN_NAME)
+        uid = item.text(TREE_COLUMN_UID)
         if not uid:
             return
         self.tabSetLabel(uid, name)
@@ -528,7 +568,7 @@ class ProjectView(Qt.QWidget):
         if not currentitem:
             return
 
-        parent = currentitem.text(1)
+        parent = currentitem.text(TREE_COLUMN_UID)
         dialog = NewDocumentDialog(self)
         if not dialog.exec_():
             return
