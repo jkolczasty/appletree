@@ -22,12 +22,28 @@
 
 from appletree.plugins.base import ATPlugin
 from appletree.gui.qt import Qt
+import time
+
+
+class ProgressDialog(Qt.QProgressDialog):
+
+    def __init__(self, win, cancelcb=None, *args):
+        super(ProgressDialog, self).__init__(parent=win)
+        self.setModal(True)
+        self.setLabelText("Please wait...")
+        self.cancelcb = cancelcb
+        self.setRange(0, 100)
+        self.setAutoClose(False)
+        self.setAutoReset(False)
+        self._cancebutton = Qt.QPushButton(self)
+        self._cancebutton.setText("Cancel")
+        self.setCancelButton(self._cancebutton)
 
 
 class TestPlugin(ATPlugin):
     def buildToolbarApplication(self, toolbar):
         toolbar.addWithSeparatorLeft(
-            [dict(name='Hello', icon=self.getIcon('toolbar'), shortcut='CTRL+A', callback=self.on_toolbar_hello),
+            [dict(name='Hello', icon=self.getIcon('toolbar'), shortcut='CTRL+T', callback=self.on_toolbar_hello),
              ])
 
     def on_toolbar_hello(self):
@@ -42,9 +58,18 @@ class TestPlugin(ATPlugin):
         # # msg.buttonClicked.connect(msgbtn)
         #
         # msg.exec_()
-        dialog = self.preferencesDialog("Some title", "Some text")
-        dialog.addSimpleInput("input1", "some input", "somevalue")
-        dialog.exec_()
+        d = ProgressDialog(self.win())
+        d.show()
+        c = 0
+        while c < 100:
+            d.setValue((c/100)*100)
+            Qt.QApplication.processEvents()
+            if d.wasCanceled():
+                print("CANCEL! ABORT!")
+            c += 1
+            time.sleep(0.1)
+
+        d.destroy()
 
     def on_plugin_menu(self):
         msg = Qt.QMessageBox()
