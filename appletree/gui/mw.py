@@ -24,6 +24,9 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import logging
+from configparser import ConfigParser
+import os.path
+from appletree.config import config
 from appletree.gui.qt import Qt, QtCore
 from appletree.helpers import getIcon, getIconSvg, messageDialog
 from appletree.gui.toolbar import Toolbar
@@ -87,6 +90,8 @@ class AppleTreeMainWindow(Qt.QMainWindow):
             if not project.active:
                 continue
             self.projectOpen(projectid)
+
+        self.load()
 
     def buildToolbar(self):
 
@@ -179,14 +184,84 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
         self.tabs.setTabText(idx, label)
 
+    def load(self):
+        path = os.path.join(config.config_dir, "appletree.conf")
+        try:
+            cfg = ConfigParser()
+            cfg.read(path)
+
+            section = 'appletree'
+            if not cfg.has_section(section):
+                return
+
+            openeddocuments = cfg.get(section, 'openeddocuments', fallback=None)
+            if openeddocuments:
+                for s in openeddocuments.split(","):
+                    if not s:
+                        continue
+                    s = s.strip().split(":", 1)
+                    if len(s) != 2:
+                        continue
+                    projectid, docid = s
+                    view = self.projectsViews.get(projectid)
+                    if not view:
+                        continue
+                    view.open(docid)
+
+            activedocuments = cfg.get(section, 'activedocuments', fallback=None)
+            if activedocuments:
+                for s in activedocuments.split(","):
+                    if not s:
+                        continue
+                    s = s.strip().split(":", 1)
+                    if len(s) != 2:
+                        continue
+                    projectid, docid = s
+                    view = self.projectsViews.get(projectid)
+                    if not view:
+                        continue
+                    view.setCurrentDocument(docid)
+
+        except Exception as e:
+            self.log.error("Failed to load: %s: %s", e.__class__.__name__, e)
+
     def save(self, *args):
-        pass
+        path = os.path.join(config.config_dir, "appletree.conf")
+        try:
+            cfg = ConfigParser()
+
+            openeddocuments = []
+            activedocuments = []
+            for i in range(0, self.tabs.count()):
+                tab = self.tabs.widget(i)
+                projectid = tab.accessibleName()
+
+                pv = self.projectsViews[projectid]
+
+                for j in range(0, pv.tabs.count()):
+                    tab = pv.tabs.widget(j)
+                    docid = tab.accessibleName()
+                    openeddocuments.append("{0}:{1}".format(projectid, docid))
+                active = pv.getCurrentDocument()
+                if active:
+                    activedocuments.append("{0}:{1}".format(projectid, active))
+
+            section = 'appletree'
+            cfg.add_section(section)
+            cfg.set(section, 'openeddocuments', ",".join(openeddocuments))
+            cfg.set(section, 'activedocuments', ",".join(activedocuments))
+
+            with open(path, 'w') as f:
+                cfg.write(f)
+        except Exception as e:
+            self.log.error("Failed to save: %s: %s", e.__class__.__name__, e)
 
     def closeEvent(self, event):
         for pv in self.projectsViews.values():
             pv.savedrafts()
 
         event.accept()
+        self.save()
 
     # signals/callbacks
 

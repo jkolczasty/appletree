@@ -339,12 +339,25 @@ class ProjectView(Qt.QWidget):
 
         self.project.doc.updateDocumentMeta(docid, dict(tags=tags2joined))
 
-    def getCurrentEditor(self):
+    def getCurrentDocument(self):
         index = self.tabs.currentIndex()
+        if index < 0:
+            return None
+
         tab = self.tabs.widget(index)
         if not tab:
             return None, None
         docid = tab.accessibleName()
+        return docid
+
+    def setCurrentDocument(self, docid):
+        index = self.tabFind(docid)
+        if index is None:
+            return
+        self.tabs.setCurrentIndex(index)
+
+    def getCurrentEditor(self):
+        docid = self.getCurrentDocument()
         editor = self.editors.get(docid)
         return docid, editor
 
@@ -354,11 +367,17 @@ class ProjectView(Qt.QWidget):
             if tab.accessibleName() == uid:
                 return i
 
-    def open(self, docid, name):
+    def open(self, docid, name=None):
         idx = self.tabFind(docid)
         if idx is not None:
             self.tabs.setCurrentIndex(idx)
             return
+
+        if name is None:
+            item = self.treeFindDocument(docid)
+            if not item:
+                return
+            name = item.text(TREE_COLUMN_NAME)
 
         meta = self.project.doc.getDocumentMeta(docid)
         _type = meta.get('type') or 'richtext'
