@@ -61,6 +61,7 @@ class ProjectView(Qt.QWidget):
 
         tabs = Qt.QTabWidget()
         tabs.setTabsClosable(True)
+        tabs.setMovable(True)
         tabs.tabCloseRequested.connect(self.on_tab_close_req)
         tabs.currentChanged.connect(self.on_tab_current_changed)
 
