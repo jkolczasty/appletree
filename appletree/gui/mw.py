@@ -222,6 +222,11 @@ class AppleTreeMainWindow(Qt.QMainWindow):
                         continue
                     view.setCurrentDocument(docid)
 
+            projectid = cfg.get(section, 'activeproject', fallback=None)
+            if projectid is not None:
+                index = self.tabFind(projectid)
+                if index > -1:
+                    self.tabs.setCurrentIndex(index)
         except Exception as e:
             self.log.error("Failed to load: %s: %s", e.__class__.__name__, e)
 
@@ -246,10 +251,14 @@ class AppleTreeMainWindow(Qt.QMainWindow):
                 if active:
                     activedocuments.append("{0}:{1}".format(projectid, active))
 
+            index = self.tabs.currentIndex()
+            projectid = self.tabs.widget(index).accessibleName() if index > -1 else None
             section = 'appletree'
             cfg.add_section(section)
             cfg.set(section, 'openeddocuments', ",".join(openeddocuments))
             cfg.set(section, 'activedocuments', ",".join(activedocuments))
+            if projectid:
+                cfg.set(section, 'activeproject', projectid)
 
             with open(path, 'w') as f:
                 cfg.write(f)
