@@ -48,7 +48,7 @@ class QATTreeWidget(Qt.QTreeWidget):
             MakeQAction(T("Tag: " + tag), self.menu, callback)
 
         # TODO: allow plugins to modify context menus
-        
+
         self.menu.addSeparator()
         MakeQAction(T("Copy subtree"), self.menu, self.on_contextmenu_copy)
 

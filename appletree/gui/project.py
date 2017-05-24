@@ -82,7 +82,7 @@ class ProjectView(Qt.QWidget):
         box.addWidget(self.toolbar)
         box.addWidget(splitter)
 
-        tree.setHeaderHidden(False)
+        tree.setHeaderHidden(True)
         tree.resizeColumnToContents(TREE_COLUMN_ICON)
         tree.setDragDropMode(Qt.QAbstractItemView.InternalMove)
         tree.setAcceptDrops(True)
@@ -246,7 +246,6 @@ class ProjectView(Qt.QWidget):
 
         self.tagDocuemntTree(treeitem=item, addtags=tags)
 
-        item.setTextAlignment(TREE_COLUMN_ICON, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         self.tree.resizeColumnToContents(TREE_COLUMN_NAME)
         self.tree.resizeColumnToContents(TREE_COLUMN_ICON)
         return item
@@ -302,6 +301,9 @@ class ProjectView(Qt.QWidget):
         icons.setLayout(layout)
         layout.setContentsMargins(1, 1, 1, 1)
         h = self.tree.visualItemRect(treeitem).height() - 2  # -2 = margin
+        ww = 0
+        i = 0
+        layout.insertStretch(-1, 100)
 
         for tag in tags2:
             label = Qt.QLabel()
@@ -311,11 +313,23 @@ class ProjectView(Qt.QWidget):
                 continue
             # not sure if it will work correcly on all platforms
             pixmap2 = pixmap.scaledToHeight(h)
+            w = pixmap2.width()
+            label.setFixedHeight(h)
+            label.setFixedWidth(w)
+            label.setMaximumWidth(w)
+            label.setMargin(0)
+            label.setContentsMargins(0, 0, 0, 0)
+            label.setSizePolicy(Qt.QSizePolicy.Preferred, Qt.QSizePolicy.Preferred)
+            ww += w
             del pixmap
 
             label.setPixmap(pixmap2)
+            layout.setStretch(i, 0)
             layout.addWidget(label)
+            i += 1
 
+        widget = Qt.QWidget()
+        widget.setFixedHeight(h)
         docid = treeitem.text(TREE_COLUMN_UID)
         icons.setLayout(layout)
 
