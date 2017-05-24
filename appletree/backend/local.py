@@ -98,14 +98,15 @@ class BackendDocumentsLocal(BackendDocuments):
             cfg.add_section(section)
 
             for k, v in meta.items():
-                if k not in DOCUMENT_META_KEYS:
+                if v is None or k not in DOCUMENT_META_KEYS:
                     continue
+                
                 cfg.set(section, k, str(v))
             with open(fn, 'w') as f:
                 cfg.write(f)
             return True
         except Exception as e:
-            self.log.error("putDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
+            self.log.error("putDocumentMeta(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
             traceback.print_exc()
 
     def updateDocumentMeta(self, docid, meta):

@@ -459,6 +459,7 @@ class ProjectView(Qt.QWidget):
         docbodydraft = srcprojectv.project.doc.getDocumentBodyDraft(srcuid)
         images = srcprojectv.project.doc.getImages(srcuid)
 
+        print("CLONED META!!!: ", docmeta)
         self.project.doc.putDocumentMeta(dstuid, docmeta)
         self.project.doc.putDocumentBody(dstuid, docbody)
         if docbodydraft is not None:
