@@ -100,7 +100,7 @@ class BackendDocumentsLocal(BackendDocuments):
             for k, v in meta.items():
                 if v is None or k not in DOCUMENT_META_KEYS:
                     continue
-                
+
                 cfg.set(section, k, str(v))
             with open(fn, 'w') as f:
                 cfg.write(f)

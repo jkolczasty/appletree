@@ -459,7 +459,6 @@ class ProjectView(Qt.QWidget):
         docbodydraft = srcprojectv.project.doc.getDocumentBodyDraft(srcuid)
         images = srcprojectv.project.doc.getImages(srcuid)
 
-        print("CLONED META!!!: ", docmeta)
         self.project.doc.putDocumentMeta(dstuid, docmeta)
         self.project.doc.putDocumentBody(dstuid, docbody)
         if docbodydraft is not None:
@@ -469,7 +468,7 @@ class ProjectView(Qt.QWidget):
             __image = srcprojectv.project.doc.getImage(srcuid, image)
             self.project.doc.putImage(dstuid, image, __image)
 
-        self.addDocumentTree(dstuid, srcname, parent)
+        self.addDocumentTree(dstuid, srcname, parent, docmeta)
 
         for childsrcuid, childsrcname, childitems in items:
             self._cloneDocuments(childsrcuid, childsrcname, childitems, dstuid, srcprojectv)
