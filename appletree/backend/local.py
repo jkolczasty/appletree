@@ -108,6 +108,14 @@ class BackendDocumentsLocal(BackendDocuments):
             self.log.error("putDocumentBody(): exception: %s: %s: %s", fn, e.__class__.__name__, e)
             traceback.print_exc()
 
+    def updateDocumentMeta(self, docid, meta):
+        _meta = self.getDocumentMeta(docid)
+        if not _meta:
+            _meta = {}
+
+        _meta.update(meta)
+        return self.putDocumentMeta(docid, meta)
+
     def getDocumentBody(self, docid):
         path = os.path.join(self.docdir, docid)
 

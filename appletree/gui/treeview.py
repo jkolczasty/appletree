@@ -22,14 +22,16 @@
 
 from weakref import ref
 from appletree.gui.qt import Qt
+from appletree.gui.utils import ObjectCallbackWrapperRef, MakeQAction
 from appletree.helpers import T
 
-from appletree.gui.consts import TREE_COLUMN_UID, TREE_COLUMN_NAME, TREE_COLUMN_TAGS
+from appletree.gui.consts import TREE_COLUMN_UID, TREE_COLUMN_NAME, TAGS_NAMES
+
 _CLONE_ITEM = None
 
 
 class QATTreeWidget(Qt.QTreeWidget):
-# class QATTreeWidget(Qt.QTreeView):
+    # class QATTreeWidget(Qt.QTreeView):
     menu = None
 
     def __init__(self, win, parent=None):
@@ -38,21 +40,19 @@ class QATTreeWidget(Qt.QTreeWidget):
         self.win = ref(win)
 
         self.menu = Qt.QMenu()
+        i = 0
+        for tag in TAGS_NAMES:
+            i += 1
+            callback = ObjectCallbackWrapperRef(self, 'on_contextmenu_tag', tag)
+            Qt.QShortcut("CTRL+" + str(i), self, member=callback)
+            MakeQAction(T("Tag: " + tag), self.menu, callback)
 
         # TODO: allow plugins to modify context menus
-        action = Qt.QAction(T("Copy subtree"), self.menu)
-        action.triggered.connect(self.on_contextmenu_copy)
-        self.menu.addAction(action)
+        
+        self.menu.addSeparator()
+        MakeQAction(T("Copy subtree"), self.menu, self.on_contextmenu_copy)
 
-        action = Qt.QAction(T("Tag: important"), self.menu)
-        action.triggered.connect(self.on_contextmenu_tag_important)
-        self.menu.addAction(action)
-
-        action = Qt.QAction(T("Paste subtree"), self.menu)
-        action.triggered.connect(self.on_contextmenu_paste)
-        action.setDisabled(True)
-        self.menupaste = action
-        self.menu.addAction(action)
+        self.menupaste = MakeQAction(T("Paste subtree"), self.menu, self.on_contextmenu_paste)
         self.menu.addSeparator()
 
         action = Qt.QAction(T("Remove subtree"), self.menu)
@@ -126,8 +126,7 @@ class QATTreeWidget(Qt.QTreeWidget):
 
         win.removeDocument(uid)
 
-    def on_contextmenu_tag_important(self):
-        tag = 'important'
+    def on_contextmenu_tag(self, tag, *args):
 
         win = self.win()
         if not win:
@@ -137,12 +136,4 @@ class QATTreeWidget(Qt.QTreeWidget):
         if not items:
             return
         item = items[0]
-        tags = [t.strip() for t in item.text(TREE_COLUMN_TAGS).split(",") if t]
-        if tag in tags:
-            tags.remove(tag)
-        else:
-            tags.append(tag)
-
-        print("NEW TAGS:", tags)
-        item.setText(TREE_COLUMN_TAGS, ",".join(sorted(tags)))
-        win.tagDocuemntTree(item)
+        win.tagDocuemntTree(treeitem=item, toggletags=[tag, ])

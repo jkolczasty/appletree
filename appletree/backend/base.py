@@ -30,7 +30,7 @@ from hashlib import sha1
 import os
 
 
-DOCUMENT_META_KEYS = ('type', )
+DOCUMENT_META_KEYS = ('type', 'tags' )
 
 
 class BackendDocuments(object):

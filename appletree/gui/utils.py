@@ -8,6 +8,14 @@ from __future__ import print_function
 # __author__ = 'Jakub Kolasa <jakub@arker.pl'>
 
 from weakref import ref
+from appletree.gui.qt import Qt
+
+
+def MakeQAction(name, parent, callback):
+    action = Qt.QAction(name, parent)
+    action.triggered.connect(callback)
+    parent.addAction(action)
+    return action
 
 
 class ObjectCallbackWrapperRef(object):

@@ -21,6 +21,7 @@
 #
 
 from appletree.gui.qt import Qt
+from appletree.gui.consts import TAGS_NAMES
 from uuid import uuid4
 import os.path
 
@@ -71,3 +72,11 @@ def messageDialog(title, message, details=None, OkCancel=False, icon=None):
         msg.setStandardButtons(Qt.QMessageBox.Ok)
 
     return msg.exec_() == Qt.QMessageBox.Ok
+
+
+def tagsSortKey(item):
+    try:
+        return TAGS_NAMES.index(item)
+    except:
+        return 9999
+

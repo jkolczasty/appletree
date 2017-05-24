@@ -17,3 +17,5 @@ TREE_COLUMN_TAGS = 3
 TREE_COLUMN_COUNT = 4
 
 TREE_COLUMN_ICON_WIDTH = 32
+
+TAGS_NAMES = ['important', 'highprio']

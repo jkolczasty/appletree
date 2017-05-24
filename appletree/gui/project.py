@@ -25,9 +25,10 @@ from __future__ import print_function
 
 import logging
 from weakref import ref
+from copy import copy
 from appletree.gui.qt import Qt, QtCore
 from appletree.gui.toolbar import Toolbar
-from appletree.helpers import genuid, getIcon, getIconPixmap, getIconImage, T, messageDialog
+from appletree.helpers import genuid, getIcon, getIconPixmap, T, messageDialog, tagsSortKey
 from appletree.gui.editor import Editor
 
 from appletree.gui.rteditor import RTEditor
@@ -148,11 +149,12 @@ class ProjectView(Qt.QWidget):
 
         self.editors = {}
 
-    def _processDocumentsTree(self, docid, docname, items, parent):
-        self.addDocumentTree(docid, docname, parent)
+    def _processDocumentsTree(self, docid, docname, items, parent, meta={}):
+        self.addDocumentTree(docid, docname, parent, meta)
 
         for childdocid, childdocname, childitems in items:
-            self._processDocumentsTree(childdocid, childdocname, childitems, docid)
+            childmeta = self.project.doc.getDocumentMeta(childdocid)
+            self._processDocumentsTree(childdocid, childdocname, childitems, docid, childmeta)
 
     def loadDocumentsTree(self):
         self.treeready = False
@@ -219,12 +221,15 @@ class ProjectView(Qt.QWidget):
             index = parent.indexOfChild(item)
             parent.takeChild(index)
 
-    def addDocumentTree(self, docid, name, parent, tags=""):
+    def addDocumentTree(self, docid, name, parent, meta={}):
         if parent:
             # TODO: find parent in tree
             parent = self.treeFindDocument(parent)
         else:
             parent = self.tree.invisibleRootItem()
+
+        tags = meta.get('tags') or ""
+        tags = [t.strip() for t in tags.split(",") if t]
 
         columns = [None] * TREE_COLUMN_COUNT
         columns[TREE_COLUMN_NAME] = name
@@ -234,45 +239,90 @@ class ProjectView(Qt.QWidget):
         # item.setFirstColumnSpanned(True)
         item.setText(TREE_COLUMN_NAME, name)
         item.setText(TREE_COLUMN_UID, docid)
-        item.setText(TREE_COLUMN_TAGS, tags)
+        item.setText(TREE_COLUMN_TAGS, "")
         item.setIcon(TREE_COLUMN_NAME, getIcon("doc"))
         item.setExpanded(True)
         item.setFlags(TREE_ITEM_FLAGS)
 
-        self.tagDocuemntTree(item)
+        self.tagDocuemntTree(treeitem=item, addtags=tags)
 
         item.setTextAlignment(TREE_COLUMN_ICON, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
         self.tree.resizeColumnToContents(TREE_COLUMN_NAME)
         self.tree.resizeColumnToContents(TREE_COLUMN_ICON)
         return item
 
-    def tagDocuemntTree(self, item):
-        widget = self.tree.itemWidget(item, TREE_COLUMN_ICON)
+    def tagDocuemntTree(self, docid=None, treeitem=None, tags=None, addtags=None, removetags=None, toggletags=None):
+        if not treeitem:
+            treeitem = self.treeFindDocument(docid)
+
+        if not treeitem:
+            return
+
+        if tags is None:
+            tags = [t.strip() for t in treeitem.text(TREE_COLUMN_TAGS).split(",") if t]
+            tags.sort(key=tagsSortKey)
+
+        tags2 = copy(tags)
+
+        # treeitem.setText(TREE_COLUMN_TAGS, ",".join(tags))
+
+        c = 0
+        if addtags:
+            for tag in addtags:
+                if tag not in tags2:
+                    tags2.append(tag)
+                    c += 1
+        if removetags:
+            for tag in removetags:
+                if tag in tags2:
+                    tags2.remove(tag)
+                    c += 1
+
+        if toggletags:
+            for tag in toggletags:
+                c += 1
+                if tag in tags2:
+                    tags2.remove(tag)
+                else:
+                    tags2.append(tag)
+
+        if c == 0:
+            return
+
+        tags2.sort(key=tagsSortKey)
+        tags2joined = ",".join(tags2)
+        treeitem.setText(TREE_COLUMN_TAGS, tags2joined)
+
+        widget = self.tree.itemWidget(treeitem, TREE_COLUMN_ICON)
         if widget:
             widget.destroy()
 
         icons = Qt.QWidget(self.tree)
         layout = Qt.QHBoxLayout()
         icons.setLayout(layout)
+        layout.setContentsMargins(1, 1, 1, 1)
+        h = self.tree.visualItemRect(treeitem).height() - 2  # -2 = margin
 
-        tags = item.text(TREE_COLUMN_TAGS)
-        if tags:
-            tags = [t.strip() for t in item.text(TREE_COLUMN_TAGS).split(",") if t]
-        else:
-            tags = []
-
-        for tag in tags:
+        for tag in tags2:
             label = Qt.QLabel()
             pixmap = getIconPixmap("icon-tag-{0}".format(tag))
             if not pixmap or pixmap.isNull():
                 self.log.error("Missing tag icon: %s", tag)
                 continue
-            label.setPixmap(pixmap)
+            # not sure if it will work correcly on all platforms
+            pixmap2 = pixmap.scaledToHeight(h)
+            del pixmap
+
+            label.setPixmap(pixmap2)
             layout.addWidget(label)
+
+        docid = treeitem.text(TREE_COLUMN_UID)
         icons.setLayout(layout)
 
-        self.tree.setItemWidget(item, TREE_COLUMN_ICON, icons)
+        self.tree.setItemWidget(treeitem, TREE_COLUMN_ICON, icons)
         self.tree.resizeColumnToContents(TREE_COLUMN_ICON)
+
+        self.project.doc.updateDocumentMeta(docid, dict(tags=tags2joined))
 
     def getCurrentEditor(self):
         index = self.tabs.currentIndex()
@@ -484,7 +534,6 @@ class ProjectView(Qt.QWidget):
     def on_tree_item_changed(self, item):
         if not self.treeready:
             return
-        self.log.info("on_tree_item_changed(): %s")
         name = item.text(TREE_COLUMN_NAME)
         uid = item.text(TREE_COLUMN_UID)
         if not uid:
