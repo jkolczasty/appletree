@@ -31,22 +31,15 @@ if __name__ == "__main__":
     print("Loading appletree.qui.qt")
     from appletree.gui.qt import initFonts, initQtApplication
     APP = initQtApplication()
-    from appletree.gui.progressdialog import ProgressDialog
-
-    ProgressDialog.create(0)
-    ProgressDialog.progress(10)
     print("Loading appletree.helpers")
     from appletree.helpers import getIcon
-    ProgressDialog.progress(20)
     print("Loading appletree.application")
     from appletree.application import App
-    ProgressDialog.progress(30)
 
     APP.setApplicationName("AppleTree")
     APP.setWindowIcon(getIcon('app'))
     initFonts()
     app = App()
-    ProgressDialog.done()
     app.show()
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     sys.exit(APP.exec_())
