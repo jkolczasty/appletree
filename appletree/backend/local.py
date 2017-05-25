@@ -91,7 +91,7 @@ class BackendDocumentsLocal(BackendDocuments):
             return
 
         fn = os.path.join(path, "document.meta.atdoc")
-        self.log.info("backend:putDocumentMeta(): %s: %s", docid, fn)
+        self.log.info("putDocumentMeta(): %s: %s", docid, fn)
         try:
             cfg = ConfigParser()
             section = 'document'
@@ -195,7 +195,7 @@ class BackendDocumentsLocal(BackendDocuments):
 
         fn = os.path.join(path, "document.atdoc")
 
-        self.log.info("backend:putDocumentBody(): %s: %s", docid, fn)
+        self.log.info("putDocumentBody(): %s: %s", docid, fn)
         try:
             with open(fn, 'wb') as f:
                 f.write(encode(body, "utf-8"))
@@ -210,7 +210,7 @@ class BackendDocumentsLocal(BackendDocuments):
         path = os.path.join(self.docdir, docid)
 
         fn = os.path.join(path, "document.draft.atdoc")
-        self.log.info("backend:putDocumentBodyDraft(): %s: %s", docid, fn)
+        self.log.info("putDocumentBodyDraft(): %s: %s", docid, fn)
         try:
             with open(fn, 'wb') as f:
                 f.write(encode(body, "utf-8"))
@@ -224,7 +224,7 @@ class BackendDocumentsLocal(BackendDocuments):
         if not os.path.exists(path):
             return
 
-        self.log.info("backend:removeDocument(): %s: %s", docid, path)
+        self.log.info("removeDocument(): %s: %s", docid, path)
         try:
             shutil.rmtree(path, True)
             return True
@@ -238,7 +238,7 @@ class BackendDocumentsLocal(BackendDocuments):
         localname = resourceNameToLocal(name, ext='.png')
         path = self.localImageNamePath(docid, localname)
 
-        self.log.info("backend:getImage(): %s: %s: %s", docid, name, path)
+        self.log.info("getImage(): %s: %s: %s", docid, name, path)
 
         try:
             f = Qt.QFile(path)
@@ -260,11 +260,28 @@ class BackendDocumentsLocal(BackendDocuments):
 
         return None
 
+    def getImageRaw(self, docid, name):
+        localname = resourceNameToLocal(name, ext='.png')
+        path = self.localImageNamePath(docid, localname)
+
+        self.log.info("getImageRaw(): %s: %s: %s", docid, name, path)
+
+        try:
+            f = open(path, 'rb')
+            data = f.read()
+            f.close()
+            del f
+            return data
+        except Exception as e:
+            self.log.error("getImageRaw(): exception: %s: %s: %s", path, e.__class__.__name__, e)
+
+        return None
+
     def putImage(self, docid, name, image):
         localname = resourceNameToLocal(name, ext='.png')
         path = self.localImageNamePath(docid, localname)
 
-        self.log.info("backend:putImage(): %s: %s: %s", docid, name, path)
+        self.log.info("putImage(): %s: %s: %s", docid, name, path)
         try:
             # TODO: support indexed colors formats like GIF?
             image.save(path, "PNG")

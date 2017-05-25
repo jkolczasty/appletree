@@ -27,16 +27,17 @@ import logging
 from configparser import ConfigParser
 import os.path
 from appletree.config import config
-from appletree.gui.qt import Qt, QtCore, APP
-from appletree.helpers import getIcon, getIconSvg, messageDialog
+from appletree.gui.qt import QTVERSION, Qt, QtCore
+from appletree.helpers import getIcon, getIconSvg, T, messageDialog, processProjectDocumentsTree, \
+    listProjectDocumentsTree
 from appletree.gui.toolbar import Toolbar
-from appletree.gui.utils import ObjectCallbackWrapperRef
+from appletree.gui.utils import ObjectCallbackWrapperRef, MakeQAction
 from appletree.project import Projects
 from appletree.plugins.base import ATPlugins
 from appletree.gui.project import ProjectView, NewProjectDialog
 from appletree.gui.progressdialog import ProgressDialog
+from appletree.archive import AppleTreeArchive
 import traceback
-import time
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 
@@ -57,6 +58,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.toolbar = Toolbar(self)
 
         self.menuprojects = self.menubar.addMenu("Projects")
+        self.menuproject = self.menubar.addMenu("Project")
         self.menuplugins = self.menubar.addMenu("Plugins")
 
         self.plugins = ATPlugins(self)
@@ -65,6 +67,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.projects = Projects()
         self.projectsViews = dict()
 
+        self.buildMenuProject()
         self.buildToolbar()
 
         self.setGeometry(50, 50, 1440, 800)
@@ -104,6 +107,21 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         for p in self.plugins:
             try:
                 p.buildToolbarApplication(self.toolbar)
+            except Exception as e:
+                self.log.error("buildToolbar(): %s: %s", e.__class__.__name__, e)
+
+    def buildMenuProject(self):
+
+        MakeQAction(T("&Rename project"), self.menuproject, None)
+        MakeQAction(T("&Import project"), self.menuproject, None)
+        MakeQAction(T("&Export project"), self.menuproject, self.on_menu_project_export)
+        Qt.QShortcut("CTRL+E", self, member=self.on_menu_project_export)
+
+        self.menuproject.addSeparator()
+
+        for p in self.plugins:
+            try:
+                p.buildMenuProject(self.menu)
             except Exception as e:
                 self.log.error("buildToolbar(): %s: %s", e.__class__.__name__, e)
 
@@ -237,7 +255,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
         except Exception as e:
             self.log.error("Failed to load: %s: %s", e.__class__.__name__, e)
-            traceback.print_exc()
         finally:
             ProgressDialog.done()
 
@@ -287,7 +304,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
                 cfg.write(f)
         except Exception as e:
             self.log.error("Failed to save: %s: %s", e.__class__.__name__, e)
-            traceback.print_exc()
         finally:
             ProgressDialog.done()
 
@@ -326,6 +342,59 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
     def on_menu_project(self, projectid, *args):
         self.projectOpen(projectid)
+
+    def on_menu_project_export(self, *args):
+        result = Qt.QFileDialog.getSaveFileName(self, "Export project", "", "AppleTree Project Archive (*.atarch)")
+
+        if QTVERSION == 4:
+            filename = result
+        else:
+            filename, selectedfilter = result
+
+        if not filename:
+            return
+
+        projectid, projectv = self.getCurrentProject()
+
+        if not projectid:
+            return
+
+        del projectv
+
+        arch = AppleTreeArchive(filename)
+        if not arch.create():
+            messageDialog(T("Failed to create archive"))
+            return
+
+        ProgressDialog.create(0, self)
+        try:
+            project = self.projects.get(projectid)
+            arch.putProject(projectid, project.name)
+            documents = listProjectDocumentsTree(project)
+            c = len(documents)
+            i = 0
+            for docid in documents:
+                i += 1
+                ProgressDialog.progress(i * 100 / c)
+                body = project.doc.getDocumentBody(docid)
+                meta = project.doc.getDocumentMeta(docid)
+                images = project.doc.getImages(docid)
+
+                arch.putDocument(projectid, docid, meta, body)
+                for image in images:
+                    ProgressDialog.yield_()
+                    data = project.doc.getImageRaw(docid, image)
+                    arch.putDocumentImage(projectid, docid, image, data)
+
+            arch.close()
+            ProgressDialog.done()
+            messageDialog(T("Project export"), T("Project exported successfully"))
+        except Exception as e:
+            self.log.error("Failed to export: %s: %s", e.__class__.__name__, e)
+            messageDialog(T("Project export failed"), T("Project export failed"),
+                          details="{0}:{1}".format(e.__class__.__name__, e))
+        finally:
+            ProgressDialog.done()
 
     def on_toolbar_insert_image(self, *args):
         projectid, projectv = self.getCurrentProject()

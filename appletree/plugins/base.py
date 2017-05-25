@@ -205,6 +205,9 @@ class ATPlugin(object):
     def on_plugin_menu(self):
         pass
 
+    def buildMenuProject(self, menu):
+        pass
+
     def buildToolbarEditor(self, editor, toolbar):
         return
 

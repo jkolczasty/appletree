@@ -80,3 +80,62 @@ def tagsSortKey(item):
     except:
         return 9999
 
+
+def _processDocumentsTreeMeta(project, docid, docname, items, parent, meta, callback):
+    callback(project, docid, docname, parent, meta)
+
+    for childdocid, childdocname, childitems in items:
+        childmeta = project.doc.getDocumentMeta(childdocid)
+        _processDocumentsTreeMeta(project, childdocid, childdocname, childitems, docid, childmeta, callback)
+
+
+def processProjectDocumentsTreeMeta(project, callback):
+    backend = project.doc
+    doctree = backend.getDocumentsTree()
+
+    if not doctree:
+        return
+    for docid, docname, items in doctree:
+        meta = project.doc.getDocumentMeta(docid)
+        _processDocumentsTreeMeta(project, docid, docname, items, None, meta, callback)
+
+
+def _processDocumentsTree(project, docid, docname, items, parent, callback):
+    callback(project, docid, docname, parent)
+
+    for childdocid, childdocname, childitems in items:
+        _processDocumentsTree(project, childdocid, childdocname, childitems, docid, callback)
+
+
+def processProjectDocumentsTree(project, callback):
+    backend = project.doc
+    doctree = backend.getDocumentsTree()
+
+    if not doctree:
+        return
+    for docid, docname, items in doctree:
+        _processDocumentsTree(project, docid, docname, items, None, callback)
+
+
+def _countProjectDocumentsTree(project, docid, docname, parent):
+    project.documentsCount += 1
+
+
+def countProjectDocumentsTree(project):
+    project.documentsCount = 0
+    processProjectDocumentsTree(project, _countProjectDocumentsTree)
+    ret = project.documentsCount
+    del project.documentsCount
+    return ret
+
+
+def _listProjectDocumentsTree(project, docid, docname, parent):
+    project.documentsList.append(docid)
+
+
+def listProjectDocumentsTree(project):
+    project.documentsList = []
+    processProjectDocumentsTree(project, _listProjectDocumentsTree)
+    ret = project.documentsList
+    del project.documentsList
+    return ret

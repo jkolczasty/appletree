@@ -13,7 +13,8 @@ from appletree.gui.qt import Qt
 
 def MakeQAction(name, parent, callback):
     action = Qt.QAction(name, parent)
-    action.triggered.connect(callback)
+    if callback:
+        action.triggered.connect(callback)
     parent.addAction(action)
     return action
 
