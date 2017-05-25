@@ -112,8 +112,8 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
     def buildMenuProject(self):
 
-        MakeQAction(T("&Rename project"), self.menuproject, None)
-        MakeQAction(T("&Import project"), self.menuproject, None)
+        MakeQAction(T("&Rename project (not implemented yet)"), self.menuproject, None).setEnabled(False)
+        MakeQAction(T("&Import project (not implemented yet)"), self.menuproject, None).setEnabled(False)
         MakeQAction(T("&Export project"), self.menuproject, self.on_menu_project_export)
         Qt.QShortcut("CTRL+E", self, member=self.on_menu_project_export)
 

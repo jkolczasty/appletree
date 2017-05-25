@@ -31,7 +31,6 @@ _CLONE_ITEM = None
 
 
 class QATTreeWidget(Qt.QTreeWidget):
-    # class QATTreeWidget(Qt.QTreeView):
     menu = None
 
     def __init__(self, win, parent=None):
