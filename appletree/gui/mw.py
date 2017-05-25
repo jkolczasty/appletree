@@ -27,13 +27,16 @@ import logging
 from configparser import ConfigParser
 import os.path
 from appletree.config import config
-from appletree.gui.qt import Qt, QtCore
+from appletree.gui.qt import Qt, QtCore, APP
 from appletree.helpers import getIcon, getIconSvg, messageDialog
 from appletree.gui.toolbar import Toolbar
 from appletree.gui.utils import ObjectCallbackWrapperRef
 from appletree.project import Projects
 from appletree.plugins.base import ATPlugins
 from appletree.gui.project import ProjectView, NewProjectDialog
+from appletree.gui.progressdialog import ProgressDialog
+import traceback
+import time
 
 TREE_ITEM_FLAGS = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsDropEnabled
 
@@ -85,12 +88,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.ready = True
         self.treeready = False
 
-        for projectid, project in self.projects.items():
-            self.projectAdd(projectid)
-            if not project.active:
-                continue
-            self.projectOpen(projectid)
-
         self.load()
 
     def buildToolbar(self):
@@ -98,7 +95,8 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         # TODO: remove static code, move to dynamic build of toolbars and menus
         self.toolbar.add(
             [dict(name='Save', icon=getIconSvg('document-save'), shortcut='CTRL+S', callback=self.on_toolbar_save),
-             dict(name='Save all', icon=getIconSvg('document-save-all'), shortcut=None, callback=self.on_toolbar_saveall),
+             dict(name='Save all', icon=getIconSvg('document-save-all'), shortcut=None,
+                  callback=self.on_toolbar_saveall),
              dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
              dict(name='Add document', icon='document-add', shortcut='CTRL+SHIFT++',
                   callback=self.on_toolbar_document_add),
@@ -185,6 +183,8 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.tabs.setTabText(idx, label)
 
     def load(self):
+        ProgressDialog.create(2, self)
+
         path = os.path.join(config.config_dir, "appletree.conf")
         try:
             cfg = ConfigParser()
@@ -194,69 +194,88 @@ class AppleTreeMainWindow(Qt.QMainWindow):
             if not cfg.has_section(section):
                 return
 
-            openeddocuments = cfg.get(section, 'openeddocuments', fallback=None)
-            if openeddocuments:
-                for s in openeddocuments.split(","):
-                    if not s:
-                        continue
-                    s = s.strip().split(":", 1)
-                    if len(s) != 2:
-                        continue
-                    projectid, docid = s
-                    view = self.projectsViews.get(projectid)
-                    if not view:
-                        continue
+            activeproject = cfg.get(section, 'activeproject', fallback=None)
+
+            sections = cfg.sections()
+            c = len(sections)
+            i = 0
+            for section in cfg.sections():
+                i += 1
+                ProgressDialog.progress(i * 100 / c)
+                ProgressDialog.yield_()
+                if not section.startswith('project:'):
+                    continue
+                projectid = section[8:]
+
+                if not self.projectOpen(projectid):
+                    continue
+
+                view = self.projectsViews.get(projectid)
+                if not view:
+                    self.log.error("load(): Can't open project view after open: %s", projectid)
+                    continue
+
+                openeddocuments = cfg.get(section, 'openeddocuments', fallback="")
+                openeddocuments = [s.strip() for s in openeddocuments.split(",") if s]
+                activedocument = cfg.get(section, 'activedocument', fallback=None)
+
+                for docid in openeddocuments:
+                    ProgressDialog.yield_()
                     view.open(docid)
 
-            activedocuments = cfg.get(section, 'activedocuments', fallback=None)
-            if activedocuments:
-                for s in activedocuments.split(","):
-                    if not s:
-                        continue
-                    s = s.strip().split(":", 1)
-                    if len(s) != 2:
-                        continue
-                    projectid, docid = s
-                    view = self.projectsViews.get(projectid)
-                    if not view:
-                        continue
-                    view.setCurrentDocument(docid)
+                if activedocument:
+                    view.setCurrentDocument(activedocument)
 
-            projectid = cfg.get(section, 'activeproject', fallback=None)
-            if projectid is not None:
-                index = self.tabFind(projectid)
-                if index > -1:
-                    self.tabs.setCurrentIndex(index)
+                if activeproject is not None:
+                    index = self.tabFind(activeproject)
+                    if index is not None:
+                        self.tabs.setCurrentIndex(index)
+
         except Exception as e:
             self.log.error("Failed to load: %s: %s", e.__class__.__name__, e)
+            traceback.print_exc()
+        finally:
+            ProgressDialog.done()
 
     def save(self, *args):
+        ProgressDialog.create(0, self)
         path = os.path.join(config.config_dir, "appletree.conf")
         try:
             cfg = ConfigParser()
 
-            openeddocuments = []
-            activedocuments = []
-            for i in range(0, self.tabs.count()):
-                tab = self.tabs.widget(i)
-                projectid = tab.accessibleName()
+            projects = self.projects.items()
+            c = len(projects)
+            i = 0
+            for projectid, project in projects:
+                i += 1
 
-                pv = self.projectsViews[projectid]
+                ProgressDialog.progress(i * 100 / c)
+                pv = self.projectsViews.get(projectid)
+                active = pv is not None
+                section = 'project:{0}'.format(projectid)
 
-                for j in range(0, pv.tabs.count()):
-                    tab = pv.tabs.widget(j)
+                cfg.add_section(section)
+                cfg.set(section, 'active', '1' if active else '0')
+
+                if not active:
+                    continue
+
+                openeddocuments = []
+                for i in range(0, pv.tabs.count()):
+                    ProgressDialog.yield_()
+                    tab = pv.tabs.widget(i)
                     docid = tab.accessibleName()
-                    openeddocuments.append("{0}:{1}".format(projectid, docid))
-                active = pv.getCurrentDocument()
-                if active:
-                    activedocuments.append("{0}:{1}".format(projectid, active))
+                    openeddocuments.append(docid)
 
-            index = self.tabs.currentIndex()
-            projectid = self.tabs.widget(index).accessibleName() if index > -1 else None
+                cfg.set(section, 'openeddocuments', ",".join(openeddocuments))
+                activedocument = pv.getCurrentDocument()
+                if activedocument:
+                    cfg.set(section, 'activedocument', activedocument)
+
             section = 'appletree'
             cfg.add_section(section)
-            cfg.set(section, 'openeddocuments', ",".join(openeddocuments))
-            cfg.set(section, 'activedocuments', ",".join(activedocuments))
+            index = self.tabs.currentIndex()
+            projectid = self.tabs.widget(index).accessibleName() if index > -1 else None
             if projectid:
                 cfg.set(section, 'activeproject', projectid)
 
@@ -264,6 +283,9 @@ class AppleTreeMainWindow(Qt.QMainWindow):
                 cfg.write(f)
         except Exception as e:
             self.log.error("Failed to save: %s: %s", e.__class__.__name__, e)
+            traceback.print_exc()
+        finally:
+            ProgressDialog.done()
 
     def closeEvent(self, event):
         for pv in self.projectsViews.values():

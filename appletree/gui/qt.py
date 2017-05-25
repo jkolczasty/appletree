@@ -26,6 +26,8 @@ import os
 import traceback
 import sys
 
+APP = None
+
 QTVERSION = 4 if os.environ.get('USE_QT4') == '1' else 5
 
 if QTVERSION == 5:
@@ -74,3 +76,8 @@ def loadQImageFix(path):
         print("Exception:", e.__class__.__name__, e)
         traceback.print_exc()
         return None
+
+def initQtApplication():
+    global APP
+    APP = Qt.QApplication(sys.argv)
+    return APP

@@ -76,6 +76,7 @@ class ProjectView(Qt.QWidget):
         tree.setColumnHidden(TREE_COLUMN_UID, True)
         tree.setColumnHidden(TREE_COLUMN_TAGS, True)
         tree.setColumnWidth(TREE_COLUMN_ICON, TREE_COLUMN_ICON_WIDTH)
+        tree.setRootIsDecorated(False)
 
         self.setLayout(box)
         self.buildToolbar()
