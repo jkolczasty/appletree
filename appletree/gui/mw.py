@@ -63,7 +63,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.plugins.discovery()
 
         self.projects = Projects()
-        self.projects.load()
         self.projectsViews = dict()
 
         self.buildToolbar()
@@ -146,7 +145,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         projectv.loadDocumentsTree()
         idx = self.tabs.addTab(projectv, project.name)
         self.projectsViews[projectid] = projectv
-        self.projects.save()
         self.tabs.setCurrentIndex(idx)
         return True
 

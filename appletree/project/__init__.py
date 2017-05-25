@@ -124,40 +124,6 @@ class Projects(object):
 
         return project
 
-    def save(self):
-        path = os.path.join(config.config_dir, "projects.conf")
-        try:
-            cfg = ConfigParser()
-
-            for projectid, project in self.projects.items():
-                section = "project:" + projectid
-                cfg.add_section(section)
-                cfg.set(section, "path", project.path)
-                cfg.set(section, "active", "1" if project.active else "0")
-
-            with open(path, 'w') as f:
-                cfg.write(f)
-        except Exception as e:
-            self.log.error("Failed to save: %s: %s", e.__class__.__name__, e)
-
-    def load(self):
-        cfg = ConfigParser()
-        path = os.path.join(config.config_dir, "projects.conf")
-        try:
-            if not cfg.read(path):
-                return False
-
-            for section in cfg.sections():
-                if not section.startswith('project:'):
-                    continue
-                projectid = section[8:]
-
-                path = cfg.get(section, "path", fallback=None)
-                active = cfg.get(section, "active", fallback=None) == '1'
-                self.open(projectid, path=path, active=active)
-        except Exception as e:
-            self.log.error("Config read failed: %s: %s", e.__class__.__name__, e)
-
     def close(self, projectid):
         project = self.projects.get(projectid)
         if not project:
