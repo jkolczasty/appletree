@@ -201,9 +201,15 @@ class AppleTreeMainWindow(Qt.QMainWindow):
                 i += 1
                 ProgressDialog.progress(i * 100 / c)
                 ProgressDialog.yield_()
+                active = cfg.get(section, 'active', fallback='0') == '1'
                 if not section.startswith('project:'):
                     continue
                 projectid = section[8:]
+
+                self.projectAdd(projectid)
+
+                if not active:
+                    continue
 
                 if not self.projectOpen(projectid):
                     continue
@@ -308,6 +314,7 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         if not ignoreChanges and not projectv.closeRequest():
             return
 
+        del self.projectsViews[projectid]
         projectv.close()
         del projectv
         widget.close()
@@ -316,7 +323,6 @@ class AppleTreeMainWindow(Qt.QMainWindow):
         self.tabs.removeTab(index)
         widget.destroy()
         project.active = False
-        self.projects.save()
 
     def on_menu_project(self, projectid, *args):
         self.projectOpen(projectid)
