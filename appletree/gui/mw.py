@@ -28,7 +28,7 @@ from configparser import ConfigParser
 import os.path
 from appletree.config import config
 from appletree.gui.qt import QTVERSION, Qt, QtCore
-from appletree.helpers import getIcon, getIconSvg, T, messageDialog, processProjectDocumentsTree, \
+from appletree.helpers import getIcon, T, messageDialog, processProjectDocumentsTree, \
     listProjectDocumentsTree
 from appletree.gui.toolbar import Toolbar
 from appletree.gui.utils import ObjectCallbackWrapperRef, MakeQAction
@@ -96,8 +96,8 @@ class AppleTreeMainWindow(Qt.QMainWindow):
 
         # TODO: remove static code, move to dynamic build of toolbars and menus
         self.toolbar.add(
-            [dict(name='Save', icon=getIconSvg('document-save'), shortcut='CTRL+S', callback=self.on_toolbar_save),
-             dict(name='Save all', icon=getIconSvg('document-save-all'), shortcut=None,
+            [dict(name='Save', icon=getIcon('document-save'), shortcut='CTRL+S', callback=self.on_toolbar_save),
+             dict(name='Save all', icon=getIcon('document-save-all'), shortcut=None,
                   callback=self.on_toolbar_saveall),
              dict(name='Add new Project', icon='project-add', shortcut=None, callback=self.on_toolbar_project_add),
              dict(name='Add document', icon='document-add', shortcut='CTRL+SHIFT++',

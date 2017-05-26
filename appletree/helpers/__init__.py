@@ -20,10 +20,12 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt
-from appletree.gui.consts import TAGS_NAMES
 from uuid import uuid4
 import os.path
+
+from appletree.gui.qt import Qt
+from appletree.gui.consts import TAGS_NAMES
+from appletree.config import config
 
 
 # dummy translations
@@ -36,12 +38,11 @@ def genuid():
 
 
 def getIcon(name):
-    fn = os.path.join("icons", name + ".png")
-    return Qt.QIcon(fn)
-
-
-def getIconSvg(name):
-    fn = os.path.join("icons", name + ".svg")
+    bfn = os.path.join(config.base_dir, "icons", name)
+    fn = bfn + ".svg"
+    if os.path.isfile(fn):
+        return Qt.QIcon(fn)
+        fn = bfn + ".png"
     return Qt.QIcon(fn)
 
 
@@ -51,7 +52,12 @@ def getIconImage(name):
 
 
 def getIconPixmap(name):
-    fn = os.path.join("icons", name + ".png")
+    bfn = os.path.join(config.base_dir, "icons", name)
+    fn = bfn + ".svg"
+    if os.path.isfile(fn):
+        return Qt.QPixmap(fn, "SVG")
+
+    fn = bfn + ".png"
     return Qt.QPixmap(fn, "PNG")
 
 

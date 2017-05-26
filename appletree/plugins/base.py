@@ -28,11 +28,11 @@ import os.path
 import sys
 import re
 from appletree.config import config
+from appletree.helpers import T
 from configparser import ConfigParser
 import traceback
 import logging
 from appletree.gui.qt import Qt, QtCore
-from appletree.plugins.helpers import T
 
 DEBUG = None
 
@@ -176,7 +176,11 @@ class ATPlugin(object):
             traceback.print_exc()
 
     def getIcon(self, name):
-        fn = os.path.join(self.base_path, "icons", name + ".png")
+        bfn = os.path.join(self.base_path, "icons", name)
+        fn = bfn + ".svg"
+        if os.path.isfile(fn):
+            return Qt.QIcon(fn)
+        fn = bfn + ".png"
         return Qt.QIcon(fn)
 
     def preferencesDialog(self, title, name):

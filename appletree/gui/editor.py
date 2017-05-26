@@ -24,7 +24,7 @@ import logging
 import os
 from weakref import ref
 from appletree.gui.qt import Qt, QTVERSION
-from appletree.helpers import getIcon, getIconSvg, messageDialog
+from appletree.helpers import getIcon, messageDialog
 from collections import OrderedDict
 from .toolbar import Toolbar
 
@@ -111,7 +111,7 @@ class Editor(Qt.QWidget):
     def buildToolbar(self):
         self.toolbar = Toolbar(self)
 
-        self.toolbar.addButtonObjectAction(self, "save", getIconSvg('document-save'), desc="Save")
+        self.toolbar.addButtonObjectAction(self, "save", getIcon('document-save'), desc="Save")
         self.toolbar.addButtonObjectAction(self, "drop-draft", getIcon('document-drop-draft'),
                                            desc="Drop draft, restore saved document")
         if self.can_print:

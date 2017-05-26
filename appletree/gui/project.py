@@ -242,7 +242,7 @@ class ProjectView(Qt.QWidget):
         item.setText(TREE_COLUMN_NAME, name)
         item.setText(TREE_COLUMN_UID, docid)
         item.setText(TREE_COLUMN_TAGS, "")
-        item.setIcon(TREE_COLUMN_NAME, getIcon("doc"))
+        item.setIcon(TREE_COLUMN_NAME, getIcon("icon-document-default"))
         item.setExpanded(True)
         item.setFlags(TREE_ITEM_FLAGS)
 

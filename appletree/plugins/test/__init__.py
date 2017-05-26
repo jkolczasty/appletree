@@ -43,7 +43,7 @@ class ProgressDialog(Qt.QProgressDialog):
 class TestPlugin(ATPlugin):
     def buildToolbarApplication(self, toolbar):
         toolbar.addWithSeparatorLeft(
-            [dict(name='Hello', icon=self.getIcon('toolbar'), shortcut='CTRL+T', callback=self.on_toolbar_hello),
+            [dict(name='Hello', icon=self.getIcon('plugin'), shortcut='CTRL+T', callback=self.on_toolbar_hello),
              ])
 
     def on_toolbar_hello(self):

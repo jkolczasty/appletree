@@ -20,20 +20,3 @@
 # __author__ = 'Jakub Kolasa <jkolczasty@gmail.com'>
 #
 
-from appletree.gui.qt import Qt
-from uuid import uuid4
-import os.path
-
-
-# dummy translations
-def T(*args):
-    return args[0]
-
-
-def genuid():
-    return str(uuid4())
-
-
-def getIcon(name):
-    fn = os.path.join("icons", name + ".png")
-    return Qt.QIcon(fn)

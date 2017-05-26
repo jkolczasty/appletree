@@ -21,7 +21,7 @@
 #
 
 from appletree.plugins.base import ATPlugin
-from appletree.plugins.helpers import T
+from appletree.helpers import T
 from appletree.gui.qt import QtCore
 import tempfile
 import shlex
